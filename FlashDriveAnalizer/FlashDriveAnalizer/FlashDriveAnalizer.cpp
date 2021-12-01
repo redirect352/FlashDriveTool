@@ -186,17 +186,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             case LVN_COLUMNCLICK:
             {
-                ListView_SortItems(filesList, LVCompareProc,(LPARAM)0);
+                //ListView_SortItems(filesList, LVCompareProc,(LPARAM)0);
             }
-            default:
+            default:{
                 break;
             }
 
-            break;
-        }
-
-
-        default:
             break;
         }
         
@@ -209,6 +204,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Разобрать выбор в меню:
             switch (wmId)
             {
+            case BUTTON_SEARCH_FILES:
             {
                 ListView_DeleteAllItems(filesList);
                 
