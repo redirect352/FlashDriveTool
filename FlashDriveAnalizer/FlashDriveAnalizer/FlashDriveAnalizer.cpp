@@ -31,6 +31,8 @@ HWND MinSize, MaxSize;
 HWND MaxSearchNesting;
 HWND sizeChange;
 HWND filesList;
+HWND  deleteButton;
+HWND deleteAllButton;
 
 flashMonitor* mon;
 filesFinder f = filesFinder::filesFinder((wchar_t*)L"D\\");
@@ -175,13 +177,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         
     }
 
+    case WM_NOTIFY: 
+    {
+        UINT id = ((LPNMHDR)lParam)->idFrom;
+        switch (id)
+        {
+           
+
+            case LVN_COLUMNCLICK:
+            {
+                ListView_SortItems(filesList, LVCompareProc,(LPARAM)0);
+            }
+            default:
+                break;
+            }
+
+            break;
+        }
+
+
+        default:
+            break;
+        }
+        
+        break;
+    }
+
         case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
             // Разобрать выбор в меню:
             switch (wmId)
             {
-            case 4:
             {
                 ListView_DeleteAllItems(filesList);
                 
@@ -287,6 +314,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
 
+          
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
@@ -338,31 +366,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     void CALLBACK CreateWindowControls(HWND hWnd)
     {
-        hlist = CreateWindow(L"listbox", NULL, WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | LBS_NOTIFY,
+        hlist = CreateWindow(WC_LISTBOX , NULL, WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | LBS_NOTIFY,
             20, 350, 500, 50, hWnd, (HMENU)8, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
         
-        filesList = CreateWindow(WC_LISTVIEWW, NULL, WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | LVS_EX_FULLROWSELECT | LBS_NOTIFY,
-            170, 20, 400, 300, hWnd, (HMENU)LISTBOX_FILES, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+        filesList = CreateWindow(WC_LISTVIEWW   , NULL, WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | LVS_EX_FULLROWSELECT | LBS_NOTIFY,
+            170, 20, 400, 300, hWnd, (HMENU)LISTVIEW_FILES, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
 
         ListView_SetExtendedListViewStyle(filesList,ListView_GetExtendedListViewStyle(filesList)|LVS_EX_FULLROWSELECT|LVS_EX_AUTOSIZECOLUMNS
         |LVS_EX_CHECKBOXES);
-        flashDrivesList = CreateWindow(L"listbox", NULL, WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | LBS_NOTIFY,
+        flashDrivesList = CreateWindow(WC_LISTBOX   , NULL, WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | LBS_NOTIFY,
             10, 20, 130, 100, hWnd, (HMENU)LISTBOX_FLASHDRIVE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
 
-        hbutton = CreateWindow(L"BUTTON", L"Do something", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-            10, 200, 100, 30, hWnd, (HMENU)4, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        hbutton = CreateWindow(WC_BUTTON    , L"Search", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            600, 290, 100, 29, hWnd, (HMENU)BUTTON_SEARCH_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        deleteButton = CreateWindow(WC_BUTTON, L"Delete", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            710, 290, 100, 29, hWnd, (HMENU)BUTTON_DELETE_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        deleteButton = CreateWindow(WC_BUTTON, L"Delete All", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            820, 290, 100, 29, hWnd, (HMENU)BUTTON_DELETE_ALL_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+
 
         clearDriveButton = CreateWindow(L"BUTTON", L"ClearDrive", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             10, 130, 130, 20, hWnd, (HMENU)BUTTON_CLEAR_DRIVE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
        
-        MinSize = CreateWindow(L"Edit", L"0", WS_TABSTOP | WS_VISIBLE | WS_CHILD|WS_BORDER,
+        MinSize = CreateWindow(WC_EDIT  , L"0", WS_TABSTOP | WS_VISIBLE | WS_CHILD|WS_BORDER,
             645, 50, 90, 20, hWnd, (HMENU)EDIT_MIN_SIZE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-        MaxSize = CreateWindow(L"Edit", L"1000", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
+        MaxSize = CreateWindow(WC_EDIT     , L"1000", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
             770, 50, 90, 20, hWnd, (HMENU)EDIT_MAX_SIZE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-        MaxSearchNesting = CreateWindow(WC_EDIT, L"3", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
+        MaxSearchNesting = CreateWindow(WC_EDIT , L"3", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
             710, 20, 25, 20, hWnd, (HMENU)EDIT_MAX_SEARCH_NESTING, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
 
-        sizeChange = CreateWindow(L"combobox", L"DLL", WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST
+        sizeChange = CreateWindow(WC_COMBOBOX   , L"DLL", WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST
             | WS_OVERLAPPED | WS_VSCROLL, 870, 49, 60,100 , hWnd, (HMENU)COMBOBOX_SIZE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
 
         SendMessage(hlist, WM_SETREDRAW, TRUE, 0L);
