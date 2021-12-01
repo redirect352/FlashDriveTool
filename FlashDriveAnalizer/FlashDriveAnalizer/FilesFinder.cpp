@@ -1,29 +1,31 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "framework.h"
 #include "FilesFinder.h"
 #include "fileapi.h"
 #include "FlashDriveAnalizer.h"
-#include "sstream"
+
 
 
 
 filesFinder::filesFinder(wchar_t* root)
 {
-	currentroot = root;
+	currentroot = new wchar_t[1024];
+	wcscpy(currentroot,root);
 }
 filesFinder::~filesFinder() 
 {
-	
+	delete currentroot;
 }
 
 void filesFinder::SetCurrentRoot(wchar_t* root)
 {
-	currentroot = root;
+	wcscpy(currentroot, root);
 }
 
 void filesFinder::findFilesBySize(HWND hList, DWORD minSize, DWORD maxSize, int* count, int MaxNestedFind,int maxCount)
 {
-	wchar_t buf[512], newPath[512];
-	currentNestLvl++;
+	
+	
 	if (MaxNestedFind < currentNestLvl) 
 	{
 		return;
@@ -41,30 +43,30 @@ void filesFinder::findFilesBySize(HWND hList, DWORD minSize, DWORD maxSize, int*
 	
 	do
 	{
-		if (data.dwFileAttributes != FILE_ATTRIBUTE_DIRECTORY && data.dwFileAttributes != FILE_ATTRIBUTE_HIDDEN
-			&& data.dwFileAttributes != FILE_ATTRIBUTE_SYSTEM && data.dwFileAttributes != FILE_ATTRIBUTE_NO_SCRUB_DATA
-			&& data.dwFileAttributes != FILE_ATTRIBUTE_READONLY)
+		if (data.dwFileAttributes != FILE_ATTRIBUTE_DIRECTORY && data.dwFileAttributes != FILE_ATTRIBUTE_HIDDEN)
+		//	&& data.dwFileAttributes != FILE_ATTRIBUTE_SYSTEM && data.dwFileAttributes != FILE_ATTRIBUTE_NO_SCRUB_DATA
+		//	&& data.dwFileAttributes != FILE_ATTRIBUTE_READONLY)
 		{
 			
 			if (data.nFileSizeLow 
 				> minSize && data.nFileSizeLow < maxSize)
 			{
-				std::stringstream s;
-				s << data.nFileSizeLow;
 
-				AddFileToListview(hList,currentroot, data.cFileName,GetWC(s.str().c_str()));
+
+				AddFileToListview(hList,currentroot, data.cFileName, data.nFileSizeLow);
 				
 
 			}
 
 		}
 		else if (data.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY && data.dwFileAttributes != FILE_ATTRIBUTE_HIDDEN
-			&& data.dwFileAttributes != FILE_ATTRIBUTE_SYSTEM && data.dwFileAttributes != FILE_ATTRIBUTE_NO_SCRUB_DATA
-			&& data.dwFileAttributes != FILE_ATTRIBUTE_READONLY)
+		 && wcscmp(data.cFileName,L".")!=0 && wcscmp(data.cFileName, L"..") != 0)
 		{
-			wsprintfW(newPath, L"%s%s\\", currentroot,data.cFileName);
-			currentroot = newPath;
+			
+			wsprintfW(currentroot, L"%s%s\\", currentroot,data.cFileName);
+			currentNestLvl++;
 			findFilesBySize(hList, minSize,maxSize,count, MaxNestedFind, maxCount);
+			currentNestLvl--;
 			MoveCurrentRootOneVolumeBack();
 		}
 
@@ -72,26 +74,24 @@ void filesFinder::findFilesBySize(HWND hList, DWORD minSize, DWORD maxSize, int*
 	}
 	while (FindNextFileW(hfind, &data));
 	
-	//MoveCurrentRootOneVolumeBack();
-	currentNestLvl--;
+	FindClose(hfind);
+
 }
 
 
 void filesFinder::MoveCurrentRootOneVolumeBack()
 {
-	int k = 1;
-	for (int i = wcsnlen_s(currentroot, 256)-1;i>=1;i--)
+	int k ;
+	currentroot[wcsnlen_s(currentroot, 512) - 1]='\0';
+	for (int i = wcsnlen_s(currentroot, 512)-1;i>=1;i--)
 	{
-		if (currentroot[i] == '\\' && k == 1)
+		if (currentroot[i] == '\\' )
 		{
-			currentroot[i] = 0;
-			k++;
-		}
-		if (currentroot[i-1] == '\\' && k == 2) 
-		{
-			currentroot[i] = 0;
+			currentroot[i+1] = '\0';
+	
 			break;
 		}
+		
 
 	}
 

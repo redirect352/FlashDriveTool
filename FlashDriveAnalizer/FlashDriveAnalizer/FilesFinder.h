@@ -27,7 +27,7 @@ class filesFinder {
 		wchar_t *currentroot;
 		int currentNestLvl = 0;
 		int currentFilesCount = 0;
-		
+		wchar_t buf[1024], newPath[1024];
 		void MoveCurrentRootOneVolumeBack();
 
 };

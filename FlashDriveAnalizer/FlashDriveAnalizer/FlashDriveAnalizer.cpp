@@ -33,6 +33,8 @@ HWND sizeChange;
 HWND filesList;
 
 flashMonitor* mon;
+filesFinder f = filesFinder::filesFinder((wchar_t*)L"D\\");
+
 
 wchar_t chosenDrive[10];
 bool isAnyDriveChoosen = false;
@@ -182,33 +184,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case 4:
             {
                 ListView_DeleteAllItems(filesList);
+                
                 wchar_t t[] = L"D:\\";
-                filesFinder f = filesFinder::filesFinder(t);
-                int l = -1;
-                wchar_t buf[20];
-                GetWindowTextW(MinSize, buf, 19);
-                DWORD min, max;
-                min = wcstol(buf, nullptr, 19);
-                if (min == 0L && wcscmp(buf,L"0"))
+                f.SetCurrentRoot((wchar_t*)t);
+                
+                DWORD min = GetEditData(MinSize), max = GetEditData(MaxSize),nest =  GetEditData(MaxSearchNesting);
+                if (min < 0 || max < 0 || nest<0)
                 {
-                    OutputAdditionalInfo(L"Wrong min format");
+                    OutputAdditionalInfo(L"Wrong input format" );
                     return NULL;
 
                 }
-                GetWindowTextW(MaxSize, buf, 19);
-                max = wcstol(buf, nullptr, 19);
-                if (max == 0L)
-                {
-                    OutputAdditionalInfo(L"Wrong max format");
-                    return NULL;
-
-                }
-
                 if (max < min) 
                 {
                     OutputAdditionalInfo(L"Max should be bigger than min");
                     return NULL;
                 }
+
 
                 int k = SendMessage(sizeChange, CB_GETCURSEL, 0, 0);
                 for (size_t i = 0; i < k; i++)
@@ -216,10 +208,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     min *= 1024;
                     max *= 1024;
                 }
-
+                int l;
 
                 
-                f.findFilesBySize(filesList,min,max,&l,1,2);
+                f.findFilesBySize(filesList,min,max,&l,nest,2);
+                
                 break;
             }
             case BUTTON_CLEAR_DRIVE: 

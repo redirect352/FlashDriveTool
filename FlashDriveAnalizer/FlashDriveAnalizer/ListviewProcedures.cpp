@@ -2,13 +2,23 @@
 #include "framework.h"
 #include "FlashDriveAnalizer.h"
 #include "Dbt.h"
+#include "sstream"
+#include "string"
+#include "cstring"
 
-void CALLBACK AddFileToListview(HWND listview, const  wchar_t* col1, const  wchar_t* col2, const  wchar_t* col3, int ind)
+
+
+void CALLBACK AddFileToListview(HWND listview, const  wchar_t* col1, const  wchar_t* col2, DWORD col3, int ind)
 {
 	
 	
 	LVITEM lvI;
-	lvI.pszText = (wchar_t*)col1; 
+
+	std::stringstream s;
+	s << col2;
+	const wchar_t* bufpath3 = GetWC(s.str().c_str());
+
+	lvI.pszText = (wchar_t*)col1;
 	lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
 	lvI.stateMask = 0;
 	lvI.iSubItem = 0;
@@ -18,7 +28,8 @@ void CALLBACK AddFileToListview(HWND listview, const  wchar_t* col1, const  wcha
 	lvI.iGroupId = 0;
 	ListView_InsertItem(listview, &lvI);
 	ListView_SetItemText(listview, 0, 1, (wchar_t*)col2);
-	ListView_SetItemText(listview, 0, 2, (wchar_t*)col3);
+	ListView_SetItemText(listview, 0, 2, (wchar_t*)bufpath3);
+	delete bufpath3;
 
 }
 

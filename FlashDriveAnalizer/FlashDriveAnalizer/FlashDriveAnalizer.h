@@ -28,7 +28,7 @@ void device_remove_failed(char letter);
 void CALLBACK DrawWindowText(HDC hdc);
 void CALLBACK OutputDrivesInListBox();
 void CALLBACK OutputAdditionalInfo(const wchar_t* info);
-void CALLBACK AddFileToListview(HWND listview, const  wchar_t* col1, const  wchar_t* col2, const  wchar_t* col3, int ind = 1000000);
+void CALLBACK AddFileToListview(HWND listview, const  wchar_t* col1, const  wchar_t* col2, DWORD col3, int ind = 1000000);
 void CALLBACK AddColumnToLIstview(HWND Listview, const wchar_t* colName, int cx,int ind=10000);
 const wchar_t* GetWC(const char* src);
 
