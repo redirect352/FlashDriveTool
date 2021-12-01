@@ -40,7 +40,7 @@ filesFinder f = filesFinder::filesFinder((wchar_t*)L"D\\");
 
 wchar_t chosenDrive[10];
 bool isAnyDriveChoosen = false;
-
+sortListviewParams sortParameter = {0,true};
 
 
 
@@ -179,14 +179,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_NOTIFY: 
     {
-        UINT id = ((LPNMHDR)lParam)->idFrom;
+        UINT id = ((LPNMHDR)lParam)->code;
         switch (id)
         {
-           
+            
 
             case LVN_COLUMNCLICK:
             {
-                //ListView_SortItems(filesList, LVCompareProc,(LPARAM)0);
+                //MessageBox(NULL,L"", L"",0);
+                
+                sortParameter.ind = ((NM_LISTVIEW*)lParam)->iSubItem;
+                sortParameter.order = !sortParameter.order;
+                ListView_SortItems(filesList, LVCompareProc, (LPARAM)&sortParameter);
             }
             default:{
                 break;
@@ -490,4 +494,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     
 
+    int CALLBACK  LVCompareProc(LPARAM p1, LPARAM p2, LPARAM p)
+    {
+        
+        wchar_t buf1[1024],
+            buf2[1024];
+        LPWSTR lpStr1, lpStr2;
+        LVFINDINFO ItemInfo;
+        ItemInfo.flags = LVFI_PARAM;
+        ItemInfo.lParam = p1;
+        int ind = ListView_FindItem(filesList,-1,&ItemInfo);
+        ListView_GetItemText(filesList,ind,(int)((sortListviewParams*)p)->ind,buf1,sizeof(buf1));
+        lpStr1 = buf1;
+
+        ItemInfo.lParam = p2;
+        ind = ListView_FindItem(filesList, -1, &ItemInfo);
+        ListView_GetItemText(filesList, ind, (int)((sortListviewParams*)p)->ind, buf2, sizeof(buf2));
+        lpStr2 = buf2;
+        if (lpStr1 &&lpStr2) 
+        {
+            int res = wcscmp(lpStr1, lpStr2);
+            if(((sortListviewParams*)p)->order)
+                return res;
+            else
+            {
+                return -res;
+            }
+        }
+
+
+        return 0;
+
+    }
 

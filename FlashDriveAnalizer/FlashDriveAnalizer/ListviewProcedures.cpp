@@ -10,22 +10,24 @@
 
 void CALLBACK AddFileToListview(HWND listview, const  wchar_t* col1, const  wchar_t* col2, DWORD col3, int ind)
 {
-	
-	
+	static int i;
 	LVITEM lvI;
 
 	std::stringstream s;
-	s << col2;
+	s << col3;
 	const wchar_t* bufpath3 = GetWC(s.str().c_str());
 
 	lvI.pszText = (wchar_t*)col1;
-	lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
+	lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM;
 	lvI.stateMask = 0;
 	lvI.iSubItem = 0;
 	lvI.state = 0;
-	lvI.iItem = ind;
+	lvI.iItem = 0;
 	lvI.iImage = 0;
 	lvI.iGroupId = 0;
+	lvI.lParam = i;
+	lvI.cchTextMax = wcslen(col1)+1;
+	i++;
 	ListView_InsertItem(listview, &lvI);
 	ListView_SetItemText(listview, 0, 1, (wchar_t*)col2);
 	ListView_SetItemText(listview, 0, 2, (wchar_t*)bufpath3);
@@ -41,7 +43,7 @@ void CALLBACK AddColumnToLIstview(HWND Listview, const wchar_t* colName,int cx, 
 	lv.cx = cx;
 	lv.cxMin = cx/2;
 	lv.fmt = LVCFMT_LEFT;
-	lv.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT;
+	lv.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT|LVCF_SUBITEM;
 	ListView_InsertColumn(Listview, ind, &lv);
 }
 
@@ -52,4 +54,5 @@ const wchar_t* GetWC(const char*src)
 	mbstowcs(wc,src,size);
 	return wc;
 }
+
 
