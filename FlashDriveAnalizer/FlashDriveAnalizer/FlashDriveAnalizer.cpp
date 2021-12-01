@@ -5,6 +5,9 @@
 #include "FlashDriveAnalizer.h"
 #include "Dbt.h"
 #include "FlashMonitor.h"
+#include "FilesFinder.h"
+#include "EditsProcedures.h"
+
 
 
 #define MAX_LOADSTRING 100
@@ -24,7 +27,12 @@ void CALLBACK CreateWindowControls(HWND hWnd);
 HWND hlist, hbutton;
 HWND clearDriveButton;
 HWND flashDrivesList;
-FlashMonitor* mon;
+HWND MinSize, MaxSize;
+HWND MaxSearchNesting;
+HWND sizeChange;
+HWND filesList;
+
+flashMonitor* mon;
 
 wchar_t chosenDrive[10];
 bool isAnyDriveChoosen = false;
@@ -56,7 +64,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_FLASHDRIVEANALIZER));
 
 
-    mon = FlashMonitor::create( hInstance,false);
+    mon = flashMonitor::create( hInstance,false);
     mon->on_device_add(device_added);
     mon->on_device_remove(device_removed);
     mon->on_device_safe_remove(device_safe_removed);
@@ -160,7 +168,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         OutputDrivesInListBox();
         LONG_PTR data = GetWindowLongPtrW(hWnd, GWLP_USERDATA);
         if (data)
-            return reinterpret_cast<FlashMonitor*>(data)->devices_changed(wParam, lParam);
+            return reinterpret_cast<flashMonitor*>(data)->devices_changed(wParam, lParam);
 
         
     }
@@ -173,7 +181,45 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
             case 4:
             {
-                if (true) {}
+                ListView_DeleteAllItems(filesList);
+                wchar_t t[] = L"D:\\";
+                filesFinder f = filesFinder::filesFinder(t);
+                int l = -1;
+                wchar_t buf[20];
+                GetWindowTextW(MinSize, buf, 19);
+                DWORD min, max;
+                min = wcstol(buf, nullptr, 19);
+                if (min == 0L && wcscmp(buf,L"0"))
+                {
+                    OutputAdditionalInfo(L"Wrong min format");
+                    return NULL;
+
+                }
+                GetWindowTextW(MaxSize, buf, 19);
+                max = wcstol(buf, nullptr, 19);
+                if (max == 0L)
+                {
+                    OutputAdditionalInfo(L"Wrong max format");
+                    return NULL;
+
+                }
+
+                if (max < min) 
+                {
+                    OutputAdditionalInfo(L"Max should be bigger than min");
+                    return NULL;
+                }
+
+                int k = SendMessage(sizeChange, CB_GETCURSEL, 0, 0);
+                for (size_t i = 0; i < k; i++)
+                {
+                    min *= 1024;
+                    max *= 1024;
+                }
+
+
+                
+                f.findFilesBySize(filesList,min,max,&l,1,2);
                 break;
             }
             case BUTTON_CLEAR_DRIVE: 
@@ -302,18 +348,59 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         hlist = CreateWindow(L"listbox", NULL, WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | LBS_NOTIFY,
             20, 350, 500, 50, hWnd, (HMENU)8, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
         
+        filesList = CreateWindow(WC_LISTVIEWW, NULL, WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | LVS_EX_FULLROWSELECT | LBS_NOTIFY,
+            170, 20, 400, 300, hWnd, (HMENU)LISTBOX_FILES, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+
+        ListView_SetExtendedListViewStyle(filesList,ListView_GetExtendedListViewStyle(filesList)|LVS_EX_FULLROWSELECT|LVS_EX_AUTOSIZECOLUMNS
+        |LVS_EX_CHECKBOXES);
         flashDrivesList = CreateWindow(L"listbox", NULL, WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | LBS_NOTIFY,
             10, 20, 130, 100, hWnd, (HMENU)LISTBOX_FLASHDRIVE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
 
         hbutton = CreateWindow(L"BUTTON", L"Do something", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-            10, 200, 250, 30, hWnd, (HMENU)4, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+            10, 200, 100, 30, hWnd, (HMENU)4, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
 
         clearDriveButton = CreateWindow(L"BUTTON", L"ClearDrive", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             10, 130, 130, 20, hWnd, (HMENU)BUTTON_CLEAR_DRIVE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+       
+        MinSize = CreateWindow(L"Edit", L"0", WS_TABSTOP | WS_VISIBLE | WS_CHILD|WS_BORDER,
+            645, 50, 90, 20, hWnd, (HMENU)EDIT_MIN_SIZE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        MaxSize = CreateWindow(L"Edit", L"1000", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
+            770, 50, 90, 20, hWnd, (HMENU)EDIT_MAX_SIZE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        MaxSearchNesting = CreateWindow(WC_EDIT, L"3", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
+            710, 20, 25, 20, hWnd, (HMENU)EDIT_MAX_SEARCH_NESTING, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+
+        sizeChange = CreateWindow(L"combobox", L"DLL", WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST
+            | WS_OVERLAPPED | WS_VSCROLL, 870, 49, 60,100 , hWnd, (HMENU)COMBOBOX_SIZE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+
         SendMessage(hlist, WM_SETREDRAW, TRUE, 0L);
 
+        
 
+        SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Byte");
+        SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Kb");
+        SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Mb");
+        SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Gb");
+        SendMessage(sizeChange, WM_SETREDRAW, TRUE, 0L);
+        SendMessage(sizeChange, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+        
+        AddColumnToLIstview(filesList, L"File path",200);
+        AddColumnToLIstview(filesList, L"File name", 100);
+        AddColumnToLIstview(filesList, L"File size(bytes)", 100);
     }
+
+    void CALLBACK DrawWindowText(HDC hdc)
+    {
+
+        TextOut(hdc, 10, 3, L"Inserted flash drives", 22);
+        TextOut(hdc, 170, 3, L"Selected drive: ", 17);
+        TextOut(hdc, 573, 52, L"Size from:", 11);
+        TextOut(hdc, 745, 52, L"to ", 2);
+        TextOut(hdc, 573, 22, L"Max search nesting:", 20);
+
+
+        TextOut(hdc, 280, 3, chosenDrive, wcslen(chosenDrive));
+    }
+
 
     void CALLBACK OutputDrivesInListBox() 
     {
@@ -333,15 +420,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         SendMessage(flashDrivesList, LB_ADDSTRING, NULL, (LPARAM)L"FakeDrive2(G:\\)");
         SendMessage(flashDrivesList, LB_ADDSTRING, NULL, (LPARAM)L"vFakeDrive3(K:\\)");
     }
-
-    void CALLBACK DrawWindowText(HDC hdc) 
-    {
-    
-        TextOut(hdc, 10, 3, L"Inserted flash drives", 22);
-        TextOut(hdc, 160, 3, L"Selected drive: ", 17);
-        TextOut(hdc, 270, 3, chosenDrive, wcslen(chosenDrive));
-    }
-
 
     void device_added(char letter)
     {
@@ -382,8 +460,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         OutputAdditionalInfo(message);
     }
 
-    void CALLBACK OutputAdditionalInfo(wchar_t *info) 
+
+    
+    void CALLBACK OutputAdditionalInfo( const wchar_t *info) 
     {
         SendMessage(hlist, LB_ADDSTRING, NULL, (LPARAM)info);
     }
     
+
+

@@ -140,6 +140,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="EditsProcedures.h" />
     <ClInclude Include="FilesFinder.h" />
     <ClInclude Include="FlashDriveAnalizer.h" />
     <ClInclude Include="FlashMonitor.h" />
@@ -148,10 +149,11 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="EditsProcedures.cpp" />
     <ClCompile Include="FilesFinder.cpp" />
     <ClCompile Include="FlashDriveAnalizer.cpp" />
     <ClCompile Include="FlashDriveMonitor.cpp" />
-    <ClCompile Include="FlashDriveSearcher.cpp" />
+    <ClCompile Include="ListviewProcedures.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FlashDriveAnalizer.rc" />
