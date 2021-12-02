@@ -40,5 +40,6 @@ struct sortListviewParams
 {
 	bool order;
 	int ind;
+	HWND ListView;
 };
 

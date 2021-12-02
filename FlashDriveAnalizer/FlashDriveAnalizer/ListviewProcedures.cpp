@@ -56,3 +56,36 @@ const wchar_t* GetWC(const char*src)
 }
 
 
+int CALLBACK  LVCompareProc(LPARAM p1, LPARAM p2, LPARAM p)
+{
+	HWND filesList = ((sortListviewParams*)p)->ListView;
+	wchar_t buf1[1024],
+		buf2[1024];
+	LPWSTR lpStr1, lpStr2;
+	LVFINDINFO ItemInfo;
+	ItemInfo.flags = LVFI_PARAM;
+	ItemInfo.lParam = p1;
+	int ind = ListView_FindItem(filesList, -1, &ItemInfo);
+	ListView_GetItemText(filesList, ind, (int)((sortListviewParams*)p)->ind, buf1, sizeof(buf1));
+	lpStr1 = buf1;
+
+	ItemInfo.lParam = p2;
+	ind = ListView_FindItem(filesList, -1, &ItemInfo);
+	ListView_GetItemText(filesList, ind, (int)((sortListviewParams*)p)->ind, buf2, sizeof(buf2));
+	lpStr2 = buf2;
+	if (lpStr1 && lpStr2)
+	{
+		int res = wcscmp(lpStr1, lpStr2);
+		if (((sortListviewParams*)p)->order)
+			return res;
+		else
+		{
+			return -res;
+		}
+	}
+
+
+	return 0;
+
+}
+

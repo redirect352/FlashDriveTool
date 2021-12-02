@@ -7,6 +7,7 @@
 #include "FlashMonitor.h"
 #include "FilesFinder.h"
 #include "EditsProcedures.h"
+#include "FilesEraser.h"
 
 
 
@@ -36,11 +37,12 @@ HWND deleteAllButton;
 
 flashMonitor* mon;
 filesFinder f = filesFinder::filesFinder((wchar_t*)L"D\\");
-
+filesEraser fEraser = filesEraser::filesEraser(true);
 
 wchar_t chosenDrive[10];
 bool isAnyDriveChoosen = false;
-sortListviewParams sortParameter = {0,true};
+bool addFlag = false;
+sortListviewParams sortParameter = { true, 0,filesList};
 
 
 
@@ -182,7 +184,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         UINT id = ((LPNMHDR)lParam)->code;
         switch (id)
         {
-            
+            case LVN_ITEMCHANGED: 
+            {
+                LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
+                if (pnmv->uChanged &LVIF_STATE) 
+                {
+                    if ((pnmv->uNewState & LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK(2))
+                    {
+                       // MessageBox(NULL, L"CHECKED", L"", 0);
+                        ListView_SetItemState(filesList, pnmv->iItem,LVIS_SELECTED, LVIS_SELECTED);
+                       // ListView_SetSelectionMark(filesList, pnmv->iItem);
+                    }
+                    if (((pnmv->uNewState & LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK(1))&& !addFlag   )
+                    {
+                        //MessageBox(NULL, L"UNCHECKED", L"", 0);
+                        ListView_SetItemState(filesList, pnmv->iItem, !LVIS_SELECTED, LVIS_SELECTED);
+                        
+                    }
+                }
+                break;
+            }
 
             case LVN_COLUMNCLICK:
             {
@@ -190,6 +211,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 
                 sortParameter.ind = ((NM_LISTVIEW*)lParam)->iSubItem;
                 sortParameter.order = !sortParameter.order;
+                sortParameter.ListView = filesList;
                 ListView_SortItems(filesList, LVCompareProc, (LPARAM)&sortParameter);
             }
             default:{
@@ -208,6 +230,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Разобрать выбор в меню:
             switch (wmId)
             {
+
             case BUTTON_SEARCH_FILES:
             {
                 ListView_DeleteAllItems(filesList);
@@ -237,9 +260,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 int l;
 
-                
+                addFlag = true;
                 f.findFilesBySize(filesList,min,max,&l,nest,2);
-                
+                addFlag = false;
                 break;
             }
             case BUTTON_CLEAR_DRIVE: 
@@ -313,19 +336,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 break;
             }
-
+            case BUTTON_DELETE_FILES: 
+            {
+                fEraser.DeleteSelectedFiles(filesList, OutputAdditionalInfo);
+                break;
+            }
           
             case IDM_ABOUT:
+             {
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
+                break; 
+            }
             case IDM_EXIT:
+            {
                 DestroyWindow(hWnd);
                 break;
+            }   
             default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
+            { 
+                return DefWindowProc(hWnd, message, wParam, lParam); 
             }
+            }
+            break;
         }
-        break;
+        
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
@@ -494,36 +528,4 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     
 
-    int CALLBACK  LVCompareProc(LPARAM p1, LPARAM p2, LPARAM p)
-    {
-        
-        wchar_t buf1[1024],
-            buf2[1024];
-        LPWSTR lpStr1, lpStr2;
-        LVFINDINFO ItemInfo;
-        ItemInfo.flags = LVFI_PARAM;
-        ItemInfo.lParam = p1;
-        int ind = ListView_FindItem(filesList,-1,&ItemInfo);
-        ListView_GetItemText(filesList,ind,(int)((sortListviewParams*)p)->ind,buf1,sizeof(buf1));
-        lpStr1 = buf1;
-
-        ItemInfo.lParam = p2;
-        ind = ListView_FindItem(filesList, -1, &ItemInfo);
-        ListView_GetItemText(filesList, ind, (int)((sortListviewParams*)p)->ind, buf2, sizeof(buf2));
-        lpStr2 = buf2;
-        if (lpStr1 &&lpStr2) 
-        {
-            int res = wcscmp(lpStr1, lpStr2);
-            if(((sortListviewParams*)p)->order)
-                return res;
-            else
-            {
-                return -res;
-            }
-        }
-
-
-        return 0;
-
-    }
-
+    
