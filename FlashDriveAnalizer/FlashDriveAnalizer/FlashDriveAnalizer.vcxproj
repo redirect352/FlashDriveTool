@@ -140,6 +140,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ButtonsHandler.h" />
+    <ClInclude Include="CtrlsId.h" />
     <ClInclude Include="filesEraser.h" />
     <ClInclude Include="EditsProcedures.h" />
     <ClInclude Include="FilesFinder.h" />
@@ -150,6 +152,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ButtonsHandler.cpp" />
     <ClCompile Include="filesEraser.cpp" />
     <ClCompile Include="EditsProcedures.cpp" />
     <ClCompile Include="FilesFinder.cpp" />

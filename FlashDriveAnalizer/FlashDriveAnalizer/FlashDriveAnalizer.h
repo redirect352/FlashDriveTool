@@ -1,28 +1,8 @@
 ﻿#pragma once
-
+#include "CtrlsId.h"
 #include "resource.h"
 #include "cfgmgr32.h"
 #include "CommCtrl.h"
-
-
-
-
-#define  BUTTON_CLEAR_DRIVE 11
-#define  BUTTON_SEARCH_FILES 19
-#define  BUTTON_DELETE_FILES 20
-#define  BUTTON_DELETE_ALL_FILES 21
-
-#define  LISTBOX_FLASHDRIVE 12
-
-#define  EDIT_MAX_SIZE 14
-#define  EDIT_MIN_SIZE 15
-#define  EDIT_MAX_SEARCH_NESTING 18
-#define  EDIT_CURRENT_PATH 22
-
-
-#define  COMBOBOX_SIZE 16
-#define  LISTVIEW_FILES 17
-
 
 
 void device_added(char letter);

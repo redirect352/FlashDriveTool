@@ -8,7 +8,8 @@
 #include "FilesFinder.h"
 #include "EditsProcedures.h"
 #include "FilesEraser.h"
-
+#include "FilesEraser.h"
+#include "ButtonsHandler.h"
 
 
 #define MAX_LOADSTRING 100
@@ -35,6 +36,8 @@ HWND filesList;
 HWND  deleteButton;
 HWND deleteAllButton;
 HWND currentPath;
+HWND comboboxExtension, addExtensionButton, deleteExtensionButton;
+
 
 
 flashMonitor* mon;
@@ -245,6 +248,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Разобрать выбор в меню:
             switch (wmId)
             {
+            case BUTTON_ADD_EXTENSION:
+            {
+                EnableWindow(hWnd ,false);
+                AddExtensionHandler(wParam,lParam,comboboxExtension,hWnd,hInst);
+                EnableWindow(hWnd, true);
+                break;
+            }
+            case BUTTON_DELETE_EXTENSION: 
+            {
+                DeleteExtensionHandler(wParam,lParam,comboboxExtension);
+                break;
+            }
             case EDIT_CURRENT_PATH: 
             {
                 switch (HIWORD(wParam))
@@ -452,7 +467,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             710, 290, 100, 29, hWnd, (HMENU)BUTTON_DELETE_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         deleteButton = CreateWindow(WC_BUTTON, L"Delete All", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             820, 290, 100, 29, hWnd, (HMENU)BUTTON_DELETE_ALL_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-
+        addExtensionButton = CreateWindow(WC_BUTTON, L"+", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            750, 82, 20, 20, hWnd, (HMENU)BUTTON_ADD_EXTENSION, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        deleteExtensionButton =  CreateWindow(WC_BUTTON, L"-", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            775, 82, 20, 20, hWnd, (HMENU)BUTTON_DELETE_EXTENSION, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
 
         clearDriveButton = CreateWindow(L"BUTTON", L"ClearDrive", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             10, 130, 130, 20, hWnd, (HMENU)BUTTON_CLEAR_DRIVE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
@@ -466,8 +484,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         currentPath = CreateWindow(WC_EDIT, L"D:\\", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER|ES_READONLY,
             280, 3, 290, 15, hWnd, (HMENU)EDIT_CURRENT_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
        
-        sizeChange = CreateWindow(WC_COMBOBOX   , L"DLL", WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST
+        sizeChange = CreateWindow(WC_COMBOBOX   , L"Size", WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST
             | WS_OVERLAPPED | WS_VSCROLL, 870, 49, 60,100 , hWnd, (HMENU)COMBOBOX_SIZE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+        comboboxExtension = CreateWindow(WC_COMBOBOX, L"Extension", WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST
+            | WS_OVERLAPPED | WS_VSCROLL, 680, 80, 60, 100, hWnd, (HMENU)COMBOBOX_EXTENSION, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+
+
 
         SendMessage(hlist, WM_SETREDRAW, TRUE, 0L);
 
@@ -477,9 +499,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Kb");
         SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Mb");
         SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Gb");
-        SendMessage(sizeChange, WM_SETREDRAW, TRUE, 0L);
         SendMessage(sizeChange, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
-        
+       
+        SendMessage(comboboxExtension, CB_ADDSTRING, 0, (LPARAM)L".pdf");
+        SendMessage(comboboxExtension, CB_ADDSTRING, 0, (LPARAM)L".jpeg");
+        SendMessage(comboboxExtension, CB_ADDSTRING, 0, (LPARAM)L".png");
+        SendMessage(comboboxExtension, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+
+
         AddColumnToLIstview(filesList, L"File path",200);
         AddColumnToLIstview(filesList, L"File name", 100);
         AddColumnToLIstview(filesList, L"File size(bytes)", 100);
@@ -491,10 +518,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         TextOut(hdc, 10, 3, L"Inserted flash drives", 22);
         TextOut(hdc, 170, 3, L"Selected drive: ", 17);
         TextOut(hdc, 573, 52, L"Size from:", 11);
+        
+        TextOut(hdc, 573, 85, L"File extension:", 16);
         TextOut(hdc, 745, 52, L"to ", 2);
         TextOut(hdc, 573, 22, L"Max search nesting:", 20);
-
-
         TextOut(hdc, 280, 3, chosenDrive, wcslen(chosenDrive));
     }
 
@@ -505,7 +532,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         std::set<wchar_t> res = mon->get_flash_disks(false);
         wchar_t driveTemplate[] = L"!:\\";
         wchar_t driveName[255];
-        ;
+        
         for (auto s :res) 
         {
             driveTemplate[0] = s;
@@ -538,7 +565,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         message[23] = (wchar_t)letter;
         if (MessageBox(NULL, 0, message, MB_ICONQUESTION | MB_YESNO) == IDYES)
         {
-
             wchar_t message2[] = L"Safe-removed USB drive: 0";
             message2[22] = (wchar_t)letter;
             OutputAdditionalInfo(message2);

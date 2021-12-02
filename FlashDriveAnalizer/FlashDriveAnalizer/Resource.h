@@ -2,6 +2,7 @@
 // Включаемый файл, созданный в Microsoft Visual C++.
 // Используется FlashDriveAnalizer.rc
 
+
 #define IDS_APP_TITLE			103
 
 #define IDR_MAINFRAME			128
