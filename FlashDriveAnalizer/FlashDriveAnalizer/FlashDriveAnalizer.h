@@ -17,6 +17,7 @@
 #define  EDIT_MAX_SIZE 14
 #define  EDIT_MIN_SIZE 15
 #define  EDIT_MAX_SEARCH_NESTING 18
+#define  EDIT_CURRENT_PATH 22
 
 
 #define  COMBOBOX_SIZE 16

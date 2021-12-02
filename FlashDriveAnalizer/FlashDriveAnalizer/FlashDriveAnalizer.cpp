@@ -34,6 +34,8 @@ HWND sizeChange;
 HWND filesList;
 HWND  deleteButton;
 HWND deleteAllButton;
+HWND currentPath;
+
 
 flashMonitor* mon;
 filesFinder f = filesFinder::filesFinder((wchar_t*)L"D\\");
@@ -189,20 +191,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
                 if (pnmv->uChanged &LVIF_STATE) 
                 {
-                    if ((pnmv->uNewState & LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK(2))
+                    bool isSelectedNow = ((pnmv->uNewState ^ pnmv->uOldState) & LVIS_SELECTED);
+                    bool isSelectedAlready = (pnmv->uNewState & LVIS_SELECTED);
+                    bool isChecked = (pnmv->uNewState & LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK(2);
+                    bool isUnchecked = (pnmv->uNewState & LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK(1);
+                    
+                    if (isChecked && !isSelectedAlready)
                     {
                        // MessageBox(NULL, L"CHECKED", L"", 0);
                         ListView_SetItemState(filesList, pnmv->iItem,LVIS_SELECTED, LVIS_SELECTED);
-                       // ListView_SetSelectionMark(filesList, pnmv->iItem);
-                    }
-                    if (((pnmv->uNewState & LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK(1))&& !addFlag   )
+                     }
+                    
+                    if (isUnchecked )
                     {
                         //MessageBox(NULL, L"UNCHECKED", L"", 0);
                         ListView_SetItemState(filesList, pnmv->iItem, !LVIS_SELECTED, LVIS_SELECTED);
                         
                     }
+
                 }
+
+
                 break;
+
+                
+
             }
 
             case LVN_COLUMNCLICK:
@@ -226,10 +239,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case WM_COMMAND:
         {
+            //
+
             int wmId = LOWORD(wParam);
             // Разобрать выбор в меню:
             switch (wmId)
             {
+            case EDIT_CURRENT_PATH: 
+            {
+                switch (HIWORD(wParam))
+                {
+                case EN_SETFOCUS:
+                {
+                    SendMessageW(currentPath, EM_SETREADONLY, false, 0);
+                    break;
+                }
+                case EN_KILLFOCUS:
+                {
+                    SendMessageW(currentPath, EM_SETREADONLY, true, 0);
+                    break;
+                }
+                default:
+                    break;
+                }
+               
+                break;
+            }
 
             case BUTTON_SEARCH_FILES:
             {
@@ -422,13 +457,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         clearDriveButton = CreateWindow(L"BUTTON", L"ClearDrive", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             10, 130, 130, 20, hWnd, (HMENU)BUTTON_CLEAR_DRIVE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
        
-        MinSize = CreateWindow(WC_EDIT  , L"0", WS_TABSTOP | WS_VISIBLE | WS_CHILD|WS_BORDER,
+        MinSize = CreateWindow(WC_EDIT  , L"0", WS_TABSTOP | WS_VISIBLE | WS_CHILD|WS_BORDER |ES_NUMBER,
             645, 50, 90, 20, hWnd, (HMENU)EDIT_MIN_SIZE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-        MaxSize = CreateWindow(WC_EDIT     , L"1000", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
+        MaxSize = CreateWindow(WC_EDIT     , L"10", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER,
             770, 50, 90, 20, hWnd, (HMENU)EDIT_MAX_SIZE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-        MaxSearchNesting = CreateWindow(WC_EDIT , L"3", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
+        MaxSearchNesting = CreateWindow(WC_EDIT , L"3", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER,
             710, 20, 25, 20, hWnd, (HMENU)EDIT_MAX_SEARCH_NESTING, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-
+        currentPath = CreateWindow(WC_EDIT, L"D:\\", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER|ES_READONLY,
+            280, 3, 290, 15, hWnd, (HMENU)EDIT_CURRENT_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+       
         sizeChange = CreateWindow(WC_COMBOBOX   , L"DLL", WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST
             | WS_OVERLAPPED | WS_VSCROLL, 870, 49, 60,100 , hWnd, (HMENU)COMBOBOX_SIZE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
 
