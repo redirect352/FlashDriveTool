@@ -33,3 +33,26 @@ bool CheckMinMax(DWORD min, DWORD max, DWORD nest ,Message ms)
     }
     return true;
 }
+void MultiplySizes(HWND sizeCB, DWORD* min, DWORD* max)
+{
+    int k = SendMessage(sizeCB, CB_GETCURSEL, 0, 0);
+    for (size_t i = 0; i < k; i++)
+    {
+        (*min) *= 1024;
+        (*max) *= 1024;
+    }
+}
+
+bool GetExtension(HWND extCB, const wchar_t* ext) 
+{
+    int ind = SendMessageW(extCB, CB_GETCURSEL, 0, 0);
+
+    int res = SendMessageW(extCB, CB_GETLBTEXT, ind, (LPARAM)ext);
+
+    if (res == CB_ERR)
+    {
+        MessageBox(NULL, L"Extension error", L"Error", 0);
+        return false;
+    }
+    return true;
+}

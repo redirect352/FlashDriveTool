@@ -10,6 +10,7 @@
 #include "FilesEraser.h"
 #include "FilesEraser.h"
 #include "ButtonsHandler.h"
+#include "InitProcedures.h"
 
 
 #define MAX_LOADSTRING 100
@@ -252,6 +253,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Разобрать выбор в меню:
             switch (wmId)
             {
+            case CHECKBOX_USE_EXTENSION: 
+            {
+                bool state = getCheckState(checkboxExtension);
+                EnableWindow(comboboxExtension,state);
+                EnableWindow(addExtensionButton, state);                
+                EnableWindow(deleteExtensionButton, state);
+                break;
+            }
+            case CHECKBOX_USE_SIZE_BORDER: 
+            {
+                bool state = getCheckState(checkboxSize);
+                EnableWindow(sizeChange, state);
+                EnableWindow(MinSize, state);
+                EnableWindow(MaxSize, state);
+                break;
+            }
             case BUTTON_ADD_EXTENSION:
             {
                 EnableWindow(hWnd ,false);
@@ -284,7 +301,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                
                 break;
             }
-
             case BUTTON_SEARCH_FILES:
             {
                 ListView_DeleteAllItems(filesList);
@@ -295,26 +311,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DWORD min = GetEditData(MinSize), max = GetEditData(MaxSize), nest = GetEditData(MaxSearchNesting);
                 if (!CheckMinMax(min, max, nest, OutputAdditionalInfo))
                     return 0;
-
-
-                int k = SendMessage(sizeChange, CB_GETCURSEL, 0, 0);
-                for (size_t i = 0; i < k; i++)
-                {
-                    min *= 1024;
-                    max *= 1024;
-                }
-                
+                MultiplySizes(sizeChange, &min, &max);
                 f.SetSizeBorder(min, max);
-                int ind = SendMessageW(comboboxExtension, CB_GETCURSEL, 0, 0);
-                wchar_t ext[255];
-                int res = SendMessageW(comboboxExtension, CB_GETLBTEXT, ind, (LPARAM)ext);
                 
-                if (res == CB_ERR) 
-                {
-                    MessageBox(NULL,L"Extension error",L"Error",0);
+                wchar_t ext[255];
+                if (!GetExtension(comboboxExtension, ext))
                     return 0;
-                }
                 f.SetExtension(ext);
+                
                 bool useSize = getCheckState(checkboxSize), useExt = getCheckState(checkboxExtension), useNameTmpl = getCheckState(checkboxName);
                 int count = 0;
                 addFlag = true;
@@ -507,23 +511,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         checkboxName = CreateWindow(WC_BUTTON, L"Name template", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
             , 773, 200, 120, 25, hWnd, (HMENU)CHECKBOX_USE_NAME_TEMPLATE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
 
-
-
-        SendMessage(hlist, WM_SETREDRAW, TRUE, 0L);
-
-        
-
-        SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Byte");
-        SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Kb");
-        SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Mb");
-        SendMessage(sizeChange, CB_ADDSTRING, 0, (LPARAM)L"Gb");
-        SendMessage(sizeChange, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
-       
-        SendMessage(comboboxExtension, CB_ADDSTRING, 0, (LPARAM)L".pdf");
-        SendMessage(comboboxExtension, CB_ADDSTRING, 0, (LPARAM)L".jpg");
-        SendMessage(comboboxExtension, CB_ADDSTRING, 0, (LPARAM)L".png");
-        SendMessage(comboboxExtension, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
-
+        SendMessageW(checkboxSize, BM_SETCHECK, BST_CHECKED, 0);
+        SendMessageW(hWnd, WM_COMMAND,CHECKBOX_USE_EXTENSION,0);
+        initSizeCombobox(sizeChange);
+        initExtensionCombobox(comboboxExtension);
 
         AddColumnToLIstview(filesList, L"File path",200);
         AddColumnToLIstview(filesList, L"File name", 100);
@@ -535,14 +526,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         TextOut(hdc, 10, 3, L"Inserted flash drives", 22);
         TextOut(hdc, 170, 3, L"Selected drive: ", 17);
-        TextOut(hdc, 573, 52, L"Size from:", 11);
-        
-        TextOut(hdc, 573, 85, L"File extension:", 16);
-        TextOut(hdc, 745, 52, L"to ", 2);
-        TextOut(hdc, 573, 22, L"Max search nesting:", 20);
         TextOut(hdc, 280, 3, chosenDrive, wcslen(chosenDrive));
-        TextOut(hdc, 573, 180, L"Search settings:", 17);
+        TextOut(hdc, 573, 22, L"Max search nesting:", 20);
+        TextOut(hdc, 573, 52, L"Size from:", 11);
+        TextOut(hdc, 745, 52, L"to ", 2);
 
+        TextOut(hdc, 573, 85, L"File extension:", 16);
+        TextOut(hdc, 573, 112, L"Name template:", 15);
+
+        TextOut(hdc, 573, 180, L"Search settings:", 17);
+        
     }
 
 
