@@ -9,9 +9,11 @@
 
 filesFinder::filesFinder(wchar_t* root)
 {
+
 	currentroot = new wchar_t[1024];
 	wcscpy(currentroot,root);
 }
+
 filesFinder::~filesFinder() 
 {
 	delete currentroot;
@@ -21,8 +23,20 @@ void filesFinder::SetCurrentRoot(wchar_t* root)
 {
 	wcscpy(currentroot, root);
 }
+void filesFinder::SetSizeBorder(DWORD _minSize, DWORD _maxSize) 
+{
+	this->minSize = _minSize;
+	this->maxSize = _maxSize;
+}
 
-void filesFinder::findFilesBySize(HWND hList, DWORD minSize, DWORD maxSize, int* count, int MaxNestedFind,int maxCount)
+void filesFinder::SetExtension(wchar_t* extension) 
+{
+	wcscpy_s(this->extension,extension);
+}
+
+
+
+void filesFinder::findFiles(HWND hList, int* count, int MaxNestedFind, bool useSizeBorder, bool useExtension, bool UseNameTemlate,int maxCount)
 {
 	
 	
@@ -31,8 +45,15 @@ void filesFinder::findFilesBySize(HWND hList, DWORD minSize, DWORD maxSize, int*
 		return;
 	}
 	WIN32_FIND_DATAW data;
-
-	wsprintfW(newPath,L"%s*",currentroot);
+	wsprintfW(newPath, L"%s*", currentroot);
+	/*if (!useExtension) 
+	{
+		
+	}
+	else
+	{
+		wsprintfW(newPath, L"%s*%s", currentroot,this->extension);
+	}*/
 	HANDLE hfind = FindFirstFileW(newPath, &data);
 	if (hfind == INVALID_HANDLE_VALUE) 
 	{
@@ -48,14 +69,13 @@ void filesFinder::findFilesBySize(HWND hList, DWORD minSize, DWORD maxSize, int*
 		//	&& data.dwFileAttributes != FILE_ATTRIBUTE_READONLY)
 		{
 			
-			if (data.nFileSizeLow 
-				> minSize && data.nFileSizeLow < maxSize)
+			if ( !useSizeBorder || (data.nFileSizeLow > minSize && data.nFileSizeLow < maxSize))
 			{
-
-
-				AddFileToListview(hList,currentroot, data.cFileName, data.nFileSizeLow);
-				
-
+				if (!useExtension || this->CheckExtension(data.cFileName)) 
+				{
+					AddFileToListview(hList, currentroot, data.cFileName, data.nFileSizeLow);
+					(*count)++;
+				}
 			}
 
 		}
@@ -65,7 +85,7 @@ void filesFinder::findFilesBySize(HWND hList, DWORD minSize, DWORD maxSize, int*
 			
 			wsprintfW(currentroot, L"%s%s\\", currentroot,data.cFileName);
 			currentNestLvl++;
-			findFilesBySize(hList, minSize,maxSize,count, MaxNestedFind, maxCount);
+			findFiles(hList,count, MaxNestedFind, useSizeBorder,useExtension,UseNameTemlate,maxCount);
 			currentNestLvl--;
 			MoveCurrentRootOneVolumeBack();
 		}
@@ -73,11 +93,23 @@ void filesFinder::findFilesBySize(HWND hList, DWORD minSize, DWORD maxSize, int*
 
 	}
 	while (FindNextFileW(hfind, &data));
-	
 	FindClose(hfind);
 
 }
 
+
+bool filesFinder::CheckExtension(wchar_t* fileName) 
+{
+	bool res = true;
+	for (int i = wcslen(fileName) - 1, j = wcslen(extension)-1; i >= 0 && j>=0;i--,j--) 
+	{
+		if (fileName[i] != extension[j])
+		{
+			return false;
+		}
+	}
+	return res;
+}
 
 void filesFinder::MoveCurrentRootOneVolumeBack()
 {

@@ -3,7 +3,7 @@
 #include "CommCtrl.h"
 
 
-typedef void CALLBACK Message(const wchar_t*);
+//typedef void CALLBACK Message(const wchar_t*);
 
 class filesEraser 
 {

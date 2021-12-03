@@ -13,3 +13,5 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+
+typedef void CALLBACK Message(const wchar_t*);

@@ -37,7 +37,7 @@ HWND  deleteButton;
 HWND deleteAllButton;
 HWND currentPath;
 HWND comboboxExtension, addExtensionButton, deleteExtensionButton;
-
+HWND checkboxSize, checkboxExtension, checkboxName;
 
 
 flashMonitor* mon;
@@ -186,6 +186,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_NOTIFY: 
     {
+        if (lParam == 0) 
+        {
+            return 0;
+        }
         UINT id = ((LPNMHDR)lParam)->code;
         switch (id)
         {
@@ -205,7 +209,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         ListView_SetItemState(filesList, pnmv->iItem,LVIS_SELECTED, LVIS_SELECTED);
                      }
                     
-                    if (isUnchecked )
+                    if (isUnchecked && !addFlag)
                     {
                         //MessageBox(NULL, L"UNCHECKED", L"", 0);
                         ListView_SetItemState(filesList, pnmv->iItem, !LVIS_SELECTED, LVIS_SELECTED);
@@ -284,22 +288,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case BUTTON_SEARCH_FILES:
             {
                 ListView_DeleteAllItems(filesList);
-                
+
                 wchar_t t[] = L"D:\\";
                 f.SetCurrentRoot((wchar_t*)t);
                 
-                DWORD min = GetEditData(MinSize), max = GetEditData(MaxSize),nest =  GetEditData(MaxSearchNesting);
-                if (min < 0 || max < 0 || nest<0)
-                {
-                    OutputAdditionalInfo(L"Wrong input format" );
-                    return NULL;
-
-                }
-                if (max < min) 
-                {
-                    OutputAdditionalInfo(L"Max should be bigger than min");
-                    return NULL;
-                }
+                DWORD min = GetEditData(MinSize), max = GetEditData(MaxSize), nest = GetEditData(MaxSearchNesting);
+                if (!CheckMinMax(min, max, nest, OutputAdditionalInfo))
+                    return 0;
 
 
                 int k = SendMessage(sizeChange, CB_GETCURSEL, 0, 0);
@@ -308,11 +303,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     min *= 1024;
                     max *= 1024;
                 }
-                int l;
-
+                
+                f.SetSizeBorder(min, max);
+                int ind = SendMessageW(comboboxExtension, CB_GETCURSEL, 0, 0);
+                wchar_t ext[255];
+                int res = SendMessageW(comboboxExtension, CB_GETLBTEXT, ind, (LPARAM)ext);
+                
+                if (res == CB_ERR) 
+                {
+                    MessageBox(NULL,L"Extension error",L"Error",0);
+                    return 0;
+                }
+                f.SetExtension(ext);
+                bool useSize = getCheckState(checkboxSize), useExt = getCheckState(checkboxExtension), useNameTmpl = getCheckState(checkboxName);
+                int count = 0;
                 addFlag = true;
-                f.findFilesBySize(filesList,min,max,&l,nest,2);
+                f.findFiles(filesList,&count,nest,useSize, useExt,useNameTmpl,2);
                 addFlag = false;
+
+                wsprintfW(ext,L"%d files found", count);
+                OutputAdditionalInfo(ext);
                 break;
             }
             case BUTTON_CLEAR_DRIVE: 
@@ -490,6 +500,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             | WS_OVERLAPPED | WS_VSCROLL, 680, 80, 60, 100, hWnd, (HMENU)COMBOBOX_EXTENSION, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
 
 
+        checkboxSize = CreateWindow(WC_BUTTON, L"Size borders", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
+            ,573, 200, 110, 25, hWnd, (HMENU)CHECKBOX_USE_SIZE_BORDER,(HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+        checkboxExtension = CreateWindow(WC_BUTTON, L"Extension", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
+            , 683, 200, 90, 25, hWnd, (HMENU)CHECKBOX_USE_EXTENSION, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+        checkboxName = CreateWindow(WC_BUTTON, L"Name template", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
+            , 773, 200, 120, 25, hWnd, (HMENU)CHECKBOX_USE_NAME_TEMPLATE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+
+
 
         SendMessage(hlist, WM_SETREDRAW, TRUE, 0L);
 
@@ -502,7 +520,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         SendMessage(sizeChange, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
        
         SendMessage(comboboxExtension, CB_ADDSTRING, 0, (LPARAM)L".pdf");
-        SendMessage(comboboxExtension, CB_ADDSTRING, 0, (LPARAM)L".jpeg");
+        SendMessage(comboboxExtension, CB_ADDSTRING, 0, (LPARAM)L".jpg");
         SendMessage(comboboxExtension, CB_ADDSTRING, 0, (LPARAM)L".png");
         SendMessage(comboboxExtension, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
 
@@ -523,6 +541,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         TextOut(hdc, 745, 52, L"to ", 2);
         TextOut(hdc, 573, 22, L"Max search nesting:", 20);
         TextOut(hdc, 280, 3, chosenDrive, wcslen(chosenDrive));
+        TextOut(hdc, 573, 180, L"Search settings:", 17);
+
     }
 
 

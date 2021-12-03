@@ -17,3 +17,19 @@ DWORD CALLBACK GetEditData(HWND edit)
     }
     return data;
 }
+
+bool CheckMinMax(DWORD min, DWORD max, DWORD nest ,Message ms)
+{
+    if (min < 0 || max < 0 || nest < 0)
+    {
+        ms(L"Wrong input format");
+        return false;
+
+    }
+    if (max < min)
+    {
+        ms(L"Max should be bigger than min");
+        return false;
+    }
+    return true;
+}
