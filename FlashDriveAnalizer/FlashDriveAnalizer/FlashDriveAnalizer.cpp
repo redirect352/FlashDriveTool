@@ -39,7 +39,7 @@ HWND deleteAllButton;
 HWND currentPath;
 HWND comboboxExtension, addExtensionButton, deleteExtensionButton;
 HWND checkboxSize, checkboxExtension, checkboxName;
-
+HWND nameTemplate;
 
 flashMonitor* mon;
 filesFinder f = filesFinder::filesFinder((wchar_t*)L"D\\");
@@ -319,6 +319,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     return 0;
                 f.SetExtension(ext);
                 
+                GetWindowTextW(nameTemplate, ext, 255);
+                f.SetNameTemplate(ext);
+
+
                 bool useSize = getCheckState(checkboxSize), useExt = getCheckState(checkboxExtension), useNameTmpl = getCheckState(checkboxName);
                 int count = 0;
                 addFlag = true;
@@ -497,7 +501,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             710, 20, 25, 20, hWnd, (HMENU)EDIT_MAX_SEARCH_NESTING, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         currentPath = CreateWindow(WC_EDIT, L"D:\\", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER|ES_READONLY,
             280, 3, 290, 15, hWnd, (HMENU)EDIT_CURRENT_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-       
+        nameTemplate = CreateWindow(WC_EDIT, L"", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
+            680, 110, 180, 20, hWnd, (HMENU)EDIT_NAME_TEMPLATE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+
         sizeChange = CreateWindow(WC_COMBOBOX   , L"Size", WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST
             | WS_OVERLAPPED | WS_VSCROLL, 870, 49, 60,100 , hWnd, (HMENU)COMBOBOX_SIZE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
         comboboxExtension = CreateWindow(WC_COMBOBOX, L"Extension", WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST

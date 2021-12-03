@@ -1,6 +1,6 @@
 #pragma once
 
-// next id = 29
+// next id = 30
 
 #define  BUTTON_CLEAR_DRIVE 11
 #define  BUTTON_SEARCH_FILES 19
@@ -19,6 +19,7 @@
 #define  EDIT_MIN_SIZE 15
 #define  EDIT_MAX_SEARCH_NESTING 18
 #define  EDIT_CURRENT_PATH 22
+#define  EDIT_NAME_TEMPLATE 29
 
 
 #define  COMBOBOX_SIZE 16

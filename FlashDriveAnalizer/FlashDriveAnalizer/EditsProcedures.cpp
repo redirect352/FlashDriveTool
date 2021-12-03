@@ -13,7 +13,7 @@ DWORD CALLBACK GetEditData(HWND edit)
 
     if ( wcscmp(buf,L"0")!=0 &&  data ==0) 
     {
-        data = -1;
+        data = 0;
     }
     return data;
 }

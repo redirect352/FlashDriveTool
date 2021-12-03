@@ -34,6 +34,10 @@ void filesFinder::SetExtension(wchar_t* extension)
 	wcscpy_s(this->extension,extension);
 }
 
+void filesFinder::SetNameTemplate(wchar_t* _template)
+{
+	wcscpy_s(this->nameTemplate, _template);
+}
 
 
 void filesFinder::findFiles(HWND hList, int* count, int MaxNestedFind, bool useSizeBorder, bool useExtension, bool UseNameTemlate,int maxCount)
@@ -72,9 +76,12 @@ void filesFinder::findFiles(HWND hList, int* count, int MaxNestedFind, bool useS
 			if ( !useSizeBorder || (data.nFileSizeLow > minSize && data.nFileSizeLow < maxSize))
 			{
 				if (!useExtension || this->CheckExtension(data.cFileName)) 
-				{
-					AddFileToListview(hList, currentroot, data.cFileName, data.nFileSizeLow);
-					(*count)++;
+				{			
+					if (!UseNameTemlate || this->CheckNameTemplate(data.cFileName)) 
+					{
+						AddFileToListview(hList, currentroot, data.cFileName, data.nFileSizeLow);
+						(*count)++;
+					}				
 				}
 			}
 
@@ -109,6 +116,38 @@ bool filesFinder::CheckExtension(wchar_t* fileName)
 		}
 	}
 	return res;
+}
+bool filesFinder::CheckNameTemplate(wchar_t* fileName)
+{
+	bool res = true;
+	bool extPassed = false;
+	int templLen = wcsnlen_s(this->nameTemplate,255);
+	int j = templLen-1;
+	for (int i = wcsnlen_s(fileName,255) - 1; i >= 0 ; i--)
+	{
+		if (fileName[i] == L'.' && !extPassed)
+		{
+			extPassed = true;
+			continue;
+		}
+		if (!extPassed)
+			continue;
+		if (i < templLen-1 && !res)
+			return false;
+		if(fileName[i] != this->nameTemplate[j])
+		{
+			j = templLen;
+			if (i == templLen - 1)
+				res = false;
+		}
+		else if (j == 0) 
+		{
+			return true;
+		}
+
+		j--;
+	}
+	return false;
 }
 
 void filesFinder::MoveCurrentRootOneVolumeBack()

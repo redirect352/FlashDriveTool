@@ -20,12 +20,15 @@ class filesFinder {
 		
 		void SetCurrentRoot(wchar_t* root);
 		void SetExtension(wchar_t* extension);
+		void SetNameTemplate(wchar_t* _template);
 		void SetSizeBorder(DWORD _minSize, DWORD _maxSize);
 	private:
 		void MoveCurrentRootOneVolumeBack();
 		bool CheckExtension(wchar_t* fileName);
+		bool CheckNameTemplate(wchar_t* fileName);
 		wchar_t *currentroot;
 		wchar_t extension[255] = L"";
+		wchar_t  nameTemplate[255] = L"";
 		DWORD minSize =0, maxSize=0;
 		
 		int currentNestLvl = 0;
