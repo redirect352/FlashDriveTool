@@ -38,7 +38,7 @@ HWND  deleteButton;
 HWND deleteAllButton;
 HWND currentPath;
 HWND comboboxExtension, addExtensionButton, deleteExtensionButton;
-HWND checkboxSize, checkboxExtension, checkboxName;
+HWND checkboxSize, checkboxExtension, checkboxName, checkboxCaseSensitiveTeml;
 HWND nameTemplate;
 
 flashMonitor* mon;
@@ -253,6 +253,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Разобрать выбор в меню:
             switch (wmId)
             {
+            case CHECKBOX_USE_NAME_TEMPLATE: 
+            {
+                bool state = getCheckState(checkboxName);
+                EnableWindow(nameTemplate, state);
+                EnableWindow(checkboxCaseSensitiveTeml, state);
+                break;
+            }
+            case CHECKBOX_CASE_SENSITIVE_TEMPL:
+            {
+                f.SetTemplateCaseSensitive(getCheckState(checkboxCaseSensitiveTeml));
+                break;
+            }
             case CHECKBOX_USE_EXTENSION: 
             {
                 bool state = getCheckState(checkboxExtension);
@@ -325,6 +337,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 bool useSize = getCheckState(checkboxSize), useExt = getCheckState(checkboxExtension), useNameTmpl = getCheckState(checkboxName);
                 int count = 0;
+               
                 addFlag = true;
                 f.findFiles(filesList,&count,nest,useSize, useExt,useNameTmpl,2);
                 addFlag = false;
@@ -516,9 +529,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             , 683, 200, 90, 25, hWnd, (HMENU)CHECKBOX_USE_EXTENSION, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
         checkboxName = CreateWindow(WC_BUTTON, L"Name template", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
             , 773, 200, 120, 25, hWnd, (HMENU)CHECKBOX_USE_NAME_TEMPLATE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+        checkboxCaseSensitiveTeml = CreateWindow(WC_BUTTON, L"Case sensitive", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
+            , 773, 225, 120, 25, hWnd, (HMENU)CHECKBOX_CASE_SENSITIVE_TEMPL, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
 
         SendMessageW(checkboxSize, BM_SETCHECK, BST_CHECKED, 0);
+        SendMessageW(checkboxCaseSensitiveTeml, BM_SETCHECK, BST_CHECKED, 0);
+
         SendMessageW(hWnd, WM_COMMAND,CHECKBOX_USE_EXTENSION,0);
+        SendMessageW(hWnd, WM_COMMAND, CHECKBOX_USE_NAME_TEMPLATE, 0);
         initSizeCombobox(sizeChange);
         initExtensionCombobox(comboboxExtension);
 

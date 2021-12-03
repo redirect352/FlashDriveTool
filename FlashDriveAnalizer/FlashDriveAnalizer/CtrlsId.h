@@ -1,6 +1,6 @@
 #pragma once
 
-// next id = 30
+// next id = 31
 
 #define  BUTTON_CLEAR_DRIVE 11
 #define  BUTTON_SEARCH_FILES 19
@@ -12,6 +12,8 @@
 #define  CHECKBOX_USE_SIZE_BORDER 26
 #define  CHECKBOX_USE_EXTENSION 27
 #define  CHECKBOX_USE_NAME_TEMPLATE 28
+#define  CHECKBOX_CASE_SENSITIVE_TEMPL 30
+
 
 #define  LISTBOX_FLASHDRIVE 12
 

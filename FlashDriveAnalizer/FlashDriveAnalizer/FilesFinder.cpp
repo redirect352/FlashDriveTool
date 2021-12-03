@@ -39,6 +39,10 @@ void filesFinder::SetNameTemplate(wchar_t* _template)
 	wcscpy_s(this->nameTemplate, _template);
 }
 
+void filesFinder::SetTemplateCaseSensitive(bool value)
+{
+	this->templateCaseSensitive = value;
+}
 
 void filesFinder::findFiles(HWND hList, int* count, int MaxNestedFind, bool useSizeBorder, bool useExtension, bool UseNameTemlate,int maxCount)
 {
@@ -134,7 +138,10 @@ bool filesFinder::CheckNameTemplate(wchar_t* fileName)
 			continue;
 		if (i < templLen-1 && !res)
 			return false;
-		if(fileName[i] != this->nameTemplate[j])
+
+		//towlower
+		if(  (this->templateCaseSensitive && fileName[i] != this->nameTemplate[j]) ||
+			 (!this->templateCaseSensitive &&  towlower(fileName[i]) != towlower(this->nameTemplate[j]))	)
 		{
 			j = templLen;
 			if (i == templLen - 1)

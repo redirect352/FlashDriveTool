@@ -22,6 +22,8 @@ class filesFinder {
 		void SetExtension(wchar_t* extension);
 		void SetNameTemplate(wchar_t* _template);
 		void SetSizeBorder(DWORD _minSize, DWORD _maxSize);
+		void SetTemplateCaseSensitive(bool value);
+
 	private:
 		void MoveCurrentRootOneVolumeBack();
 		bool CheckExtension(wchar_t* fileName);
@@ -34,7 +36,7 @@ class filesFinder {
 		int currentNestLvl = 0;
 		int currentFilesCount = 0;
 		wchar_t buf[1024] = L"", newPath[1024] = L"";
-		
+		bool templateCaseSensitive = true;
 	
 
 };
