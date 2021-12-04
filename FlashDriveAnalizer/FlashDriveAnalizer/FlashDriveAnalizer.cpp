@@ -11,6 +11,8 @@
 #include "FilesEraser.h"
 #include "ButtonsHandler.h"
 #include "InitProcedures.h"
+#include "shlobj.h"
+#include "shellapi.h"
 
 
 #define MAX_LOADSTRING 100
@@ -163,6 +165,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - отправить сообщение о выходе и вернуться
 //
 //
+
+
+
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -194,6 +200,45 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         UINT id = ((LPNMHDR)lParam)->code;
         switch (id)
         {
+            case NM_DBLCLK: 
+            {
+                wchar_t buf1[1024], buf2[255];
+                LPNMITEMACTIVATE item = (LPNMITEMACTIVATE)lParam;
+                if (item->iItem == -1)
+                    return 0;
+                ListView_GetItemText(filesList, item->iItem, 0, buf1, sizeof(buf1));
+                ListView_GetItemText(filesList, item->iItem, 1, buf2, sizeof(buf2));
+                wcscat_s(buf1,buf2);
+
+                SHELLEXECUTEINFOW sh;
+                sh.cbSize = sizeof(SHELLEXECUTEINFOW);
+                sh.fMask = SEE_MASK_DEFAULT;
+                sh.hwnd = NULL;
+                sh.lpVerb = L"open";
+                sh.lpFile = buf1;
+                sh.lpParameters = NULL;
+                sh.lpDirectory = NULL;
+                sh.nShow = SW_NORMAL;
+                int res = ShellExecuteExW(&sh);
+                if (res > 32)
+                    return 0;
+                switch (res)
+                {
+                case ERROR_FILE_NOT_FOUND:
+                    MessageBox(hWnd,L"Error. File not found!", L"Error", 0);
+                    ListView_DeleteItem(filesList,item->iItem);
+                    break;
+                case SE_ERR_ACCESSDENIED:
+                    MessageBox(hWnd, L"Error. Operating system denied access to the specified file!", L"Error", 0);
+                    break;
+                default:
+                    break;
+                }
+                
+
+
+                break;
+            }
             case LVN_ITEMCHANGED: 
             {
                 LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
@@ -253,6 +298,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Разобрать выбор в меню:
             switch (wmId)
             {
+            case BUTTON_COPY_TO_SELECTED_FOLDER:
+            {
+                wchar_t path[1024];
+                GetWindowTextW(GetDlgItem(hWnd, EDIT_COPY_PATH), path, 1024);
+                if (isDirectory(path)) {
+                    if (path[wcsnlen_s(path, 1024) - 1] != L'\\')
+                        wcscat_s(path, L"\\");
+                    f.SetCurrentRoot((wchar_t*)path);
+                }
+                else
+                {
+                    OutputAdditionalInfo(L"Wrong copy folder path");
+                    return 0;
+                }
+                fEraser.CopySelectedFiles(filesList,path,OutputAdditionalInfo);
+                //MessageBox(NULL, L"", L"",0);
+                break;
+            }
+            case CHECKBOX_USE_MAX_COUNT:
+            {
+                bool state = getCheckState(GetDlgItem(hWnd, CHECKBOX_USE_MAX_COUNT));
+                EnableWindow(GetDlgItem(hWnd, EDIT_MAX_COUNT), state);
+                break;
+            }
             case CHECKBOX_USE_NAME_TEMPLATE: 
             {
                 bool state = getCheckState(checkboxName);
@@ -317,33 +386,60 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 ListView_DeleteAllItems(filesList);
 
-                wchar_t t[] = L"D:\\";
-                f.SetCurrentRoot((wchar_t*)t);
-                
+                bool useSize = getCheckState(checkboxSize), useExt = getCheckState(checkboxExtension),
+                    useNameTmpl = getCheckState(checkboxName), useMaxCount = getCheckState(GetDlgItem(hWnd, CHECKBOX_USE_MAX_COUNT));
+
+                wchar_t path[1024];
+                GetWindowTextW(currentPath, path,1024);
+                if (isDirectory(path)) {
+                    if (path[wcsnlen_s(path, 1024) - 1] != L'\\')
+                        wcscat_s(path, L"\\");
+                    f.SetCurrentRoot((wchar_t*)path);
+                }
+                else
+                {
+                    OutputAdditionalInfo(L"Wrong folder path");
+                    return 0;
+                }
                 DWORD min = GetEditData(MinSize), max = GetEditData(MaxSize), nest = GetEditData(MaxSearchNesting);
                 if (!CheckMinMax(min, max, nest, OutputAdditionalInfo))
                     return 0;
                 MultiplySizes(sizeChange, &min, &max);
                 f.SetSizeBorder(min, max);
                 
-                wchar_t ext[255];
-                if (!GetExtension(comboboxExtension, ext))
-                    return 0;
-                f.SetExtension(ext);
+                if (useExt) 
+                {
+                    wchar_t ext[255];
+                    if (!GetExtension(comboboxExtension, ext))
+                        return 0;
+                    f.SetExtension(ext);
+                }
+                if (useNameTmpl) 
+                {
+                    wchar_t tmpl[255];
+                    GetWindowTextW(nameTemplate, tmpl, 255);
+                    f.SetNameTemplate(tmpl);
+                }
                 
-                GetWindowTextW(nameTemplate, ext, 255);
-                f.SetNameTemplate(ext);
 
+                int maxCount = -1;
+                if (useMaxCount) 
+                {
+                    maxCount = GetEditData(GetDlgItem(hWnd, EDIT_MAX_COUNT));
+                    if (maxCount == 0)
+                    {
+                        OutputAdditionalInfo(L"Wrong max count input. Try again.");
+                        return 0;
+                    }
+                }
 
-                bool useSize = getCheckState(checkboxSize), useExt = getCheckState(checkboxExtension), useNameTmpl = getCheckState(checkboxName);
                 int count = 0;
-               
                 addFlag = true;
-                f.findFiles(filesList,&count,nest,useSize, useExt,useNameTmpl,2);
+                f.findFiles(filesList,&count,nest,useSize, useExt,useNameTmpl,maxCount);
                 addFlag = false;
-
-                wsprintfW(ext,L"%d files found", count);
-                OutputAdditionalInfo(ext);
+                wchar_t message[40];
+                wsprintfW(message,L"%d files found", count);
+                OutputAdditionalInfo(message);
                 break;
             }
             case BUTTON_CLEAR_DRIVE: 
@@ -422,7 +518,56 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 fEraser.DeleteSelectedFiles(filesList, OutputAdditionalInfo);
                 break;
             }
-          
+            case BUTTON_SET_COPY_PATH: 
+            {
+                wchar_t path[1024];
+                BROWSEINFOW bi = { 0 };
+                bi.lpszTitle = L"Title";
+                LPITEMIDLIST pidl = SHBrowseForFolderW(&bi);
+                if (pidl != 0)
+                {
+                    SHGetPathFromIDListW(pidl, path);
+                    IMalloc* im = 0;
+                    CoTaskMemFree(pidl);
+                    SetWindowTextW(GetDlgItem(hWnd,EDIT_COPY_PATH), path);
+                    wcscat_s(path, L" - new  copy path");
+                    OutputAdditionalInfo(path);
+                }
+                else
+                {
+                    OutputAdditionalInfo(L"Change calseled");
+                }
+                break;
+                break;
+            }
+            case BUTTON_SET_PATH: 
+            {
+                wchar_t path[1024];
+                BROWSEINFOW bi = { 0 };
+                bi.lpszTitle = L"Title";
+                LPITEMIDLIST pidl = SHBrowseForFolderW(&bi);
+                if (pidl !=0) 
+                {
+                    SHGetPathFromIDListW(pidl, path);
+                    IMalloc* im = 0;
+                    CoTaskMemFree(pidl);
+                    /*if (SUCCEEDED(SHGetMalloc(&im))) 
+                    {
+                        im->Free(pidl);
+                        im->Release();
+                    }*/
+                   
+                    SetWindowTextW(currentPath,path);
+                    wcscat_s(path, L" - new path");
+                    OutputAdditionalInfo(path);
+                }
+                else 
+                {
+                    OutputAdditionalInfo(L"Change calseled");
+                }
+                break;
+            }
+
             case IDM_ABOUT:
              {
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -493,19 +638,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             10, 20, 130, 100, hWnd, (HMENU)LISTBOX_FLASHDRIVE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
 
         hbutton = CreateWindow(WC_BUTTON    , L"Search", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-            600, 290, 100, 29, hWnd, (HMENU)BUTTON_SEARCH_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+            600, 297, 100, 23, hWnd, (HMENU)BUTTON_SEARCH_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         deleteButton = CreateWindow(WC_BUTTON, L"Delete", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-            710, 290, 100, 29, hWnd, (HMENU)BUTTON_DELETE_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+            710, 297, 100, 23, hWnd, (HMENU)BUTTON_DELETE_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         deleteButton = CreateWindow(WC_BUTTON, L"Delete All", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-            820, 290, 100, 29, hWnd, (HMENU)BUTTON_DELETE_ALL_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+            820, 297, 100, 23, hWnd, (HMENU)BUTTON_DELETE_ALL_FILES, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         addExtensionButton = CreateWindow(WC_BUTTON, L"+", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             750, 82, 20, 20, hWnd, (HMENU)BUTTON_ADD_EXTENSION, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         deleteExtensionButton =  CreateWindow(WC_BUTTON, L"-", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             775, 82, 20, 20, hWnd, (HMENU)BUTTON_DELETE_EXTENSION, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-
         clearDriveButton = CreateWindow(L"BUTTON", L"ClearDrive", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             10, 130, 130, 20, hWnd, (HMENU)BUTTON_CLEAR_DRIVE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-       
+        CreateWindow(L"BUTTON", L"...", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            550, 3, 20, 16, hWnd, (HMENU)BUTTON_SET_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        CreateWindow(L"BUTTON", L"...", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            905, 3, 20, 16, hWnd, (HMENU)BUTTON_SET_COPY_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        deleteButton = CreateWindow(WC_BUTTON, L"Copy files", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            710, 325, 100, 23, hWnd, (HMENU)BUTTON_COPY_TO_SELECTED_FOLDER, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+
+
         MinSize = CreateWindow(WC_EDIT  , L"0", WS_TABSTOP | WS_VISIBLE | WS_CHILD|WS_BORDER |ES_NUMBER,
             645, 50, 90, 20, hWnd, (HMENU)EDIT_MIN_SIZE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         MaxSize = CreateWindow(WC_EDIT     , L"10", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER,
@@ -513,9 +664,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         MaxSearchNesting = CreateWindow(WC_EDIT , L"3", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER,
             710, 20, 25, 20, hWnd, (HMENU)EDIT_MAX_SEARCH_NESTING, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         currentPath = CreateWindow(WC_EDIT, L"D:\\", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER|ES_READONLY,
-            280, 3, 290, 15, hWnd, (HMENU)EDIT_CURRENT_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+            270, 3, 270, 15, hWnd, (HMENU)EDIT_CURRENT_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         nameTemplate = CreateWindow(WC_EDIT, L"", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER,
             680, 110, 180, 20, hWnd, (HMENU)EDIT_NAME_TEMPLATE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        CreateWindow(WC_EDIT, L"100", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER|ES_NUMBER,
+            680, 137, 180, 20, hWnd, (HMENU)EDIT_MAX_COUNT, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        CreateWindow(WC_EDIT, L"", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER | ES_READONLY,
+            660, 3, 240, 15, hWnd, (HMENU)EDIT_COPY_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+
+
 
         sizeChange = CreateWindow(WC_COMBOBOX   , L"Size", WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST
             | WS_OVERLAPPED | WS_VSCROLL, 870, 49, 60,100 , hWnd, (HMENU)COMBOBOX_SIZE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
@@ -526,14 +683,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         checkboxSize = CreateWindow(WC_BUTTON, L"Size borders", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
             ,573, 200, 110, 25, hWnd, (HMENU)CHECKBOX_USE_SIZE_BORDER,(HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
         checkboxExtension = CreateWindow(WC_BUTTON, L"Extension", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
-            , 683, 200, 90, 25, hWnd, (HMENU)CHECKBOX_USE_EXTENSION, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+            , 683, 200, 95, 25, hWnd, (HMENU)CHECKBOX_USE_EXTENSION, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
         checkboxName = CreateWindow(WC_BUTTON, L"Name template", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
-            , 773, 200, 120, 25, hWnd, (HMENU)CHECKBOX_USE_NAME_TEMPLATE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+            , 778, 200, 120, 25, hWnd, (HMENU)CHECKBOX_USE_NAME_TEMPLATE, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
         checkboxCaseSensitiveTeml = CreateWindow(WC_BUTTON, L"Case sensitive", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
-            , 773, 225, 120, 25, hWnd, (HMENU)CHECKBOX_CASE_SENSITIVE_TEMPL, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+            , 778, 225, 120, 25, hWnd, (HMENU)CHECKBOX_CASE_SENSITIVE_TEMPL, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+        CreateWindow(WC_BUTTON, L"Max count", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
+            , 683, 225, 95, 25, hWnd, (HMENU)CHECKBOX_USE_MAX_COUNT, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+        
 
         SendMessageW(checkboxSize, BM_SETCHECK, BST_CHECKED, 0);
         SendMessageW(checkboxCaseSensitiveTeml, BM_SETCHECK, BST_CHECKED, 0);
+        
+        SendMessageW(hWnd, WM_COMMAND,  CHECKBOX_USE_MAX_COUNT, 0);
 
         SendMessageW(hWnd, WM_COMMAND,CHECKBOX_USE_EXTENSION,0);
         SendMessageW(hWnd, WM_COMMAND, CHECKBOX_USE_NAME_TEMPLATE, 0);
@@ -549,14 +711,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
 
         TextOut(hdc, 10, 3, L"Inserted flash drives", 22);
-        TextOut(hdc, 170, 3, L"Selected drive: ", 17);
-        TextOut(hdc, 280, 3, chosenDrive, wcslen(chosenDrive));
+        TextOut(hdc, 170, 3, L"Selected path:", 15);
+        TextOut(hdc, 580, 3, L"Copy path:", 11);
+
+        //TextOut(hdc, 280, 3, chosenDrive, wcslen(chosenDrive));
         TextOut(hdc, 573, 22, L"Max search nesting:", 20);
         TextOut(hdc, 573, 52, L"Size from:", 11);
         TextOut(hdc, 745, 52, L"to ", 2);
 
         TextOut(hdc, 573, 85, L"File extension:", 16);
         TextOut(hdc, 573, 112, L"Name template:", 15);
+        TextOut(hdc, 573, 139, L"Max Count:", 11);
 
         TextOut(hdc, 573, 180, L"Search settings:", 17);
         

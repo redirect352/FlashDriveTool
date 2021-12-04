@@ -56,3 +56,12 @@ bool GetExtension(HWND extCB, const wchar_t* ext)
     }
     return true;
 }
+
+
+bool isDirectory(LPCWSTR folderpath)
+{
+    DWORD dwFileAttributes = GetFileAttributes(folderpath);
+    if (dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY || dwFileAttributes == 22)
+        return true;
+    return false;
+}

@@ -66,8 +66,8 @@ void filesFinder::findFiles(HWND hList, int* count, int MaxNestedFind, bool useS
 	if (hfind == INVALID_HANDLE_VALUE) 
 	{
 		MessageBox(NULL, L"Invalid path", L"", 0);
+		FindClose(hfind);
 		return;
-
 	}
 	
 	do
@@ -81,10 +81,19 @@ void filesFinder::findFiles(HWND hList, int* count, int MaxNestedFind, bool useS
 			{
 				if (!useExtension || this->CheckExtension(data.cFileName)) 
 				{			
-					if (!UseNameTemlate || this->CheckNameTemplate(data.cFileName)) 
+					if (!UseNameTemlate || this->CheckNameTemplate(data.cFileName))
 					{
-						AddFileToListview(hList, currentroot, data.cFileName, data.nFileSizeLow);
-						(*count)++;
+						if (maxCount != -1 && (*count) >=maxCount )
+						{
+							return;
+						}
+						else 
+						{
+							AddFileToListview(hList, currentroot, data.cFileName, data.nFileSizeLow);
+							(*count)++;
+						}
+					
+						
 					}				
 				}
 			}

@@ -25,7 +25,7 @@ void DeleteExtensionHandler(WPARAM wParam, LPARAM lParam, HWND combobox)
 
     if (MessageBox(NULL, L"Are you sure you want to delete this extension?", L"Confirm action", MB_ICONQUESTION | MB_YESNO) == IDYES)
     {
-		 SendMessage(combobox, CB_DELETESTRING, 0, (LPARAM)currInd);
+		 SendMessage(combobox, CB_DELETESTRING, currInd, 0);
 		 if (SendMessage(combobox, CB_GETCOUNT, 0, 0) > 0) 
 		 {
 			 SendMessage(combobox, CB_SETCURSEL, 0, 0);
