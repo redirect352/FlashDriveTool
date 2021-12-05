@@ -312,7 +312,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     OutputAdditionalInfo(L"Wrong copy folder path");
                     return 0;
                 }
-                fEraser.CopySelectedFiles(filesList,path,OutputAdditionalInfo);
+
+                //EnableWindow(hWnd, false);
+                fEraser.CopySelectedFiles(filesList,path,OutputAdditionalInfo, hWnd);
+                //EnableWindow(hWnd, true);
                 //MessageBox(NULL, L"", L"",0);
                 break;
             }
@@ -355,6 +358,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 EnableWindow(hWnd ,false);
                 AddExtensionHandler(wParam,lParam,comboboxExtension,hWnd,hInst);
                 EnableWindow(hWnd, true);
+                SendMessage(hWnd, WM_ENABLE,true,0);
                 break;
             }
             case BUTTON_DELETE_EXTENSION: 
@@ -669,7 +673,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             680, 110, 180, 20, hWnd, (HMENU)EDIT_NAME_TEMPLATE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         CreateWindow(WC_EDIT, L"100", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER|ES_NUMBER,
             680, 137, 180, 20, hWnd, (HMENU)EDIT_MAX_COUNT, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-        CreateWindow(WC_EDIT, L"", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER | ES_READONLY,
+        CreateWindow(WC_EDIT, L"D:\\temp\\", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER | ES_READONLY,
             660, 3, 240, 15, hWnd, (HMENU)EDIT_COPY_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
 
 

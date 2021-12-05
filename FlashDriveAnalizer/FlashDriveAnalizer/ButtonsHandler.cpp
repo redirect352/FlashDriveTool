@@ -3,7 +3,6 @@
 ATOM MyRegisterClass1(HINSTANCE hInstance);
 LRESULT CALLBACK    WndProc1(HWND, UINT, WPARAM, LPARAM);
 
-HWND parent1;
 HWND edit;
 
 wchar_t buf[255];
@@ -38,9 +37,6 @@ void AddExtensionHandler(WPARAM wParam, LPARAM lParam, HWND combobox, HWND paren
 {
 
     static int a;
-
-
-    parent1 = parent;
     if (a == 0)
     {
         ATOM d = MyRegisterClass1(hInstance);
@@ -52,7 +48,6 @@ void AddExtensionHandler(WPARAM wParam, LPARAM lParam, HWND combobox, HWND paren
         }
     }
     a++;
-    //|WS_CHILD WS_OVERLAPPEDWINDOW
     HWND hWnd = CreateWindowExW(0, L"Input window class", L"Input data", WS_BORDER | WS_VISIBLE | WS_POPUPWINDOW | WS_CAPTION,
         250, 250, 300, 130, parent, nullptr, hInstance, nullptr);
 
@@ -142,7 +137,7 @@ LRESULT CALLBACK WndProc1(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
         case WM_CLOSE:
-            EnableWindow(parent1, true);
+            EnableWindow(GetParent(hWnd), true);
             return DefWindowProc(hWnd, message, wParam, lParam);
             break;
         case WM_DESTROY:

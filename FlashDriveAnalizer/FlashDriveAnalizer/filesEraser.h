@@ -13,7 +13,7 @@ class filesEraser
 		int GetSuccesfullyDeleted();
 		int GetFailedToDelete();
 		void SetDeleteItemsFlag( bool flag);
-		int CALLBACK CopySelectedFiles(HWND Listview, wchar_t*copyPath,Message ms, bool deleteCopiedfiles = false);
+		int CALLBACK CopySelectedFiles(HWND Listview, wchar_t*copyPath,Message ms, HWND parentWindow,bool deleteCopiedfiles = false);
 
 
 	private:
