@@ -298,6 +298,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Разобрать выбор в меню:
             switch (wmId)
             {
+            case BUTTON_DELETE_ALL_FILES:
+            {
+                ListView_SetItemState(filesList, -1, LVIS_SELECTED, LVIS_SELECTED);
+                SendMessageW(hWnd, WM_COMMAND, BUTTON_DELETE_FILES,0);
+                break;
+            }
+            case BUTTON_COPY_ALL: 
+            {
+                ListView_SetItemState(filesList, -1, LVIS_SELECTED, LVIS_SELECTED);
+                SendMessageW(hWnd, WM_COMMAND, BUTTON_COPY_TO_SELECTED_FOLDER, 0);
+                break;
+            }
             case BUTTON_COPY_TO_SELECTED_FOLDER:
             {
                 wchar_t path[1024];
@@ -312,11 +324,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     OutputAdditionalInfo(L"Wrong copy folder path");
                     return 0;
                 }
+                bool deleteAfterCopy = getCheckState(GetDlgItem(hWnd,CHECKBOX_DELETE_AFTER_COPY));
 
-                //EnableWindow(hWnd, false);
-                fEraser.CopySelectedFiles(filesList,path,OutputAdditionalInfo, hWnd);
-                //EnableWindow(hWnd, true);
-                //MessageBox(NULL, L"", L"",0);
+                fEraser.CopySelectedFiles(filesList,path,OutputAdditionalInfo, hWnd,deleteAfterCopy);
+                
                 break;
             }
             case CHECKBOX_USE_MAX_COUNT:
@@ -659,6 +670,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             905, 3, 20, 16, hWnd, (HMENU)BUTTON_SET_COPY_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         deleteButton = CreateWindow(WC_BUTTON, L"Copy files", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             710, 325, 100, 23, hWnd, (HMENU)BUTTON_COPY_TO_SELECTED_FOLDER, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+        deleteButton = CreateWindow(WC_BUTTON, L"Copy all files", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            820, 325, 100, 23, hWnd, (HMENU)BUTTON_COPY_ALL, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
 
 
         MinSize = CreateWindow(WC_EDIT  , L"0", WS_TABSTOP | WS_VISIBLE | WS_CHILD|WS_BORDER |ES_NUMBER,
@@ -694,7 +707,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             , 778, 225, 120, 25, hWnd, (HMENU)CHECKBOX_CASE_SENSITIVE_TEMPL, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
         CreateWindow(WC_BUTTON, L"Max count", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
             , 683, 225, 95, 25, hWnd, (HMENU)CHECKBOX_USE_MAX_COUNT, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
-        
+        CreateWindow(WC_BUTTON, L"Delete files after copying", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX
+            , 710, 353, 200, 23 , hWnd, (HMENU)CHECKBOX_DELETE_AFTER_COPY, (HINSTANCE)GetWindowLongA(hWnd, -6), NULL);
+
 
         SendMessageW(checkboxSize, BM_SETCHECK, BST_CHECKED, 0);
         SendMessageW(checkboxCaseSensitiveTeml, BM_SETCHECK, BST_CHECKED, 0);

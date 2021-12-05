@@ -61,18 +61,21 @@ int CALLBACK filesEraser::DeleteSelectedFiles(HWND Listview, Message ms)
 		wcscat_s(buf1, buf2);
 
 		//If file was suuccessfully deleted
-		if (true)
+		if (DeleteFileW(buf1))
 		{
-			
+            wsprintfW(buf2, L"Deleted %s", buf1);
 			//MessageBox(NULL,buf1,L"Delete",0);
-			ms(buf1);
+			ms(buf2);
 		    ListView_DeleteItem(Listview, ind);
 			ind--;
 			this->successFullyDeleted++;
 		}
 		else 
 		{
-			this->failedToDelete++;
+            int res = GetLastError();
+            wsprintfW(buf2, L"Error! Cannot delete file %s", buf1);
+            ms(buf2);
+            this->failedToDelete++;
 		}
 		ind = ListView_GetNextItem(Listview, ind, LVNI_SELECTED);
 	}
@@ -85,7 +88,9 @@ int CALLBACK filesEraser::DeleteSelectedFiles(HWND Listview, Message ms)
 
 int CALLBACK filesEraser::CopySelectedFiles(HWND Listview, wchar_t* copyPath, Message ms, HWND parentWindow, bool deleteCopiedfiles)
 {
-	wchar_t fileName[255];
+    this->failedToDelete = 0;
+    this->successFullyDeleted = 0;
+    wchar_t fileName[255];
     static int a;
 
 	int count = 0;
@@ -140,9 +145,26 @@ int CALLBACK filesEraser::CopySelectedFiles(HWND Listview, wchar_t* copyPath, Me
             Sleep(500);
         if (CopyFileExW(buf1, buf2, LpprogressRoutine, &info, NULL, 0))
         {
+            if (deleteCopiedfiles) {
+                if (DeleteFileW(buf1))
+                {
+                    wsprintfW(buf2, L"Deleted %s", buf1);
+                    ms(buf2);
+                    ListView_DeleteItem(Listview, ind);
+                    ind--;
+                    
+                }
+                else
+                {
+                    int res = GetLastError();
+                    wsprintfW(buf2, L"Error! Cannot delete file %s", buf1);
+                    ms(buf2);
+                }
+            }
             this->successFullyDeleted++;
             wcscat_s(buf1, L" copied");
              ms(buf1);
+             
         }
         else
         {
