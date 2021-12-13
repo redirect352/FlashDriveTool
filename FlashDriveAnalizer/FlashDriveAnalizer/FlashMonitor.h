@@ -17,99 +17,63 @@ public:
 class flashMonitor
 {
 public:
-	//Создает единственный экземпляр класса usb_monitor
-	//monitor_hard_drives - опция отслеживания внешних жестких дисков
 	static flashMonitor* create(HINSTANCE hinst,bool monitor_hard_drives = false);
-
-	//Удалить экземпляр класса из памяти
 	static void remove();
 
-	//Добавляет коллбек, вызываемый при добавлении нового USB flash-диска
-	//Формат коллбека: void(char letter), где letter - буква добавившегося диска
 	template<typename Handler>
 	void on_device_add(Handler handler)
 	{
 		on_device_added_ = handler;
 	}
 
-	//Добавляет коллбек, вызываемый при небезопасном извлечении USB flash-диска
-	//Формат коллбека: void(char letter), где letter - буква извлеченного диска
 	template<typename Handler>
 	void on_device_remove(Handler handler)
 	{
 		on_device_removed_ = handler;
 	}
 
-	//Добавляет коллбек, вызываемый при безопасном извлечении USB flash-диска
-	//Формат коллбека: bool(char letter), где letter - буква извлеченного диска
-	//Верните из коллбека false, если не хотите извлекать устройство, или true в противном случае
 	template<typename Handler>
 	void on_device_safe_remove(Handler handler)
 	{
 		on_device_safe_removed_ = handler;
 	}
 
-	//Добавляет коллбек, вызываемый при неудачном безопасном извлечении USB flash-диска
-	//(таймаут или ктото другой запретил вытаскивать диск)
-	//Формат коллбека: void(char letter), где letter - буква диска
 	template<typename Handler>
 	void on_device_remove_fail(Handler handler)
 	{
 		on_device_remove_failed_ = handler;
 	}
 
-	//Функции для удаления существующих коллбеков
 	void on_device_add();
 	void on_device_remove();
 	void on_device_safe_remove();
 	void on_device_remove_fail();
 
-	//Стартует отслеживание USB
 	void start();
-	//Останавливает отслеживание USB
 	void stop();
-	//Запущено ли отслеживание USB
 	bool is_started() const;
 
-	//Получить буквы всех USB flash-дисков, имеющихся в системе в данный момент времени
-	//Если include_usb_hard_drives == true, то в список попадут буквы внешних жестких дисков,
-	//в противном случае - только флешки
 	static std::set<wchar_t> get_flash_disks(bool include_usb_hard_drives);
 
-	//Взять под контроль существующие USB-флешки
-	//Если устройство уже было замонтировано, ничего не произойдет
-	//Для каждого замонтированного устройства будет вызван коллбек on_device_add
 	void mount_existing_devices();
 
-	//Освободить все флешки, которые ранее были взяты под контроль
 	void unmount_all_devices();
 
-	//Безопасно извлечь какое-либо устройство
 	void safe_eject(char letter);
 
-	//Установить опцию - отключать ли безопасно USB-устройство даже в том случае,
-	//если после запроса на отключение от Windows прошел таймаут ожидания ответа
-	//от приложения
-	//По умолчанию включено
 	void set_safe_remove_on_timeout(bool remove);
 
-	//Включена ли опция безопасного отключения после таймаута ожидания Windows
 	bool is_set_safe_remove_on_timeout_on() const;
 
-	//Включить опцию отслеживания внешних жестких дисков
-	//По умолчанию включена опция отслеживания только USB-флешек
 	void enable_usb_hard_drive_monitoring(bool enable);
 
-	//Включена ли опция отслеживания внешних жестких дисков
 	bool is_usb_hard_drive_monitoring_enabled() const;
 
 	BOOL devices_changed(WPARAM wParam, LPARAM lParam);
 
 
-	//Вспомогательная функция для консольных приложений
 	static void message_pump();
 
-	//Деструктор
 	~flashMonitor();
 
 private:

@@ -14,14 +14,14 @@ class filesEraser
 		int GetFailedToDelete();
 		void SetDeleteItemsFlag( bool flag);
 		int CALLBACK CopySelectedFiles(HWND Listview, wchar_t*copyPath,Message ms, HWND parentWindow,bool deleteCopiedfiles = false);
-
+		
 
 	private:
 		bool deleteItems = true;
 		int successFullyDeleted = 0;
 		int failedToDelete = 0;
 		wchar_t buf1[1024] = L"", buf2[1024] = L"";
-		
+ 
 
 };
 

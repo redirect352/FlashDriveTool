@@ -14,6 +14,8 @@
 #include "shlobj.h"
 #include "shellapi.h"
 
+#include "thread"
+#include "mutex"
 
 #define MAX_LOADSTRING 100
 
@@ -28,6 +30,8 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 void CALLBACK CreateWindowControls(HWND hWnd);
+void CALLBACK  WINAPI SearchFiles(HWND hList, int* count, int MaxNestedFind, bool useSizeBorder, bool useExtension, bool UseNameTemlate,
+                    int maxCount, filesFinder f);
 
 HWND hlist, hbutton;
 HWND clearDriveButton;
@@ -47,10 +51,22 @@ flashMonitor* mon;
 filesFinder f = filesFinder::filesFinder((wchar_t*)L"D\\");
 filesEraser fEraser = filesEraser::filesEraser(true);
 
-wchar_t chosenDrive[10];
+wchar_t chosenDrive[10], prevPath[1024];
 bool isAnyDriveChoosen = false;
 bool addFlag = false;
 sortListviewParams sortParameter = { true, 0,filesList};
+
+struct SearchParams
+{
+    HWND listview;
+    int* count;
+    int MaxNestFound;
+    bool useSizeBorder;
+    bool useExtension;
+    bool UseNameTemlate;
+    int maxCount;
+    filesFinder f;
+} *LpSearchParams;
 
 
 
@@ -166,7 +182,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 //
 
-
+void CALLBACK  WINAPI SearchFiles(HWND hList, int* count, int MaxNestedFind, bool useSizeBorder, bool useExtension,
+                            bool UseNameTemlate, int maxCount, filesFinder f)
+{
+    f.findFiles(hList, count, MaxNestedFind, useSizeBorder, useExtension, UseNameTemlate, maxCount);
+}
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -274,7 +294,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case LVN_COLUMNCLICK:
             {
                 //MessageBox(NULL,L"", L"",0);
-                
+                int count = ListView_GetItemCount(filesList);
+                if (count>20000) 
+                {
+                    MessageBox(NULL, L"Sort is anawailible, when items count is more than 20000", L"Unawailible function", 0);
+                    return 0;
+                }
                 sortParameter.ind = ((NM_LISTVIEW*)lParam)->iSubItem;
                 sortParameter.order = !sortParameter.order;
                 sortParameter.ListView = filesList;
@@ -349,6 +374,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             case CHECKBOX_USE_EXTENSION: 
+
             {
                 bool state = getCheckState(checkboxExtension);
                 EnableWindow(comboboxExtension,state);
@@ -405,7 +431,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     useNameTmpl = getCheckState(checkboxName), useMaxCount = getCheckState(GetDlgItem(hWnd, CHECKBOX_USE_MAX_COUNT));
 
                 wchar_t path[1024];
-                GetWindowTextW(currentPath, path,1024);
+                GetWindowTextW(currentPath, path, 1024);
                 if (isDirectory(path)) {
                     if (path[wcsnlen_s(path, 1024) - 1] != L'\\')
                         wcscat_s(path, L"\\");
@@ -421,24 +447,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     return 0;
                 MultiplySizes(sizeChange, &min, &max);
                 f.SetSizeBorder(min, max);
-                
-                if (useExt) 
+
+                if (useExt)
                 {
                     wchar_t ext[255];
                     if (!GetExtension(comboboxExtension, ext))
                         return 0;
                     f.SetExtension(ext);
                 }
-                if (useNameTmpl) 
+                if (useNameTmpl)
                 {
                     wchar_t tmpl[255];
                     GetWindowTextW(nameTemplate, tmpl, 255);
                     f.SetNameTemplate(tmpl);
                 }
-                
+
 
                 int maxCount = -1;
-                if (useMaxCount) 
+                if (useMaxCount)
                 {
                     maxCount = GetEditData(GetDlgItem(hWnd, EDIT_MAX_COUNT));
                     if (maxCount == 0)
@@ -450,6 +476,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 int count = 0;
                 addFlag = true;
+
+                
                 f.findFiles(filesList,&count,nest,useSize, useExt,useNameTmpl,maxCount);
                 addFlag = false;
                 wchar_t message[40];
@@ -485,9 +513,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 switch (HIWORD(wParam))
                 {
+                case LBN_DBLCLK: {
+                    SetWindowTextW(GetDlgItem(hWnd, EDIT_COPY_PATH), chosenDrive);
+                    SetWindowTextW(GetDlgItem(hWnd, EDIT_CURRENT_PATH), prevPath);
+                    break;
+                }
+                              
                 case LBN_SELCHANGE: 
                 {
                     //MessageBox(hWnd, L"Confirm action", L"Confirm action", MB_ICONQUESTION | MB_YESNO);
+                    GetWindowTextW(GetDlgItem(hWnd, EDIT_CURRENT_PATH),prevPath,1024 );
                     int ind = SendMessage(flashDrivesList, LB_GETCURSEL, 0, 0);
                     if (ind == LB_ERR) 
                     {
@@ -514,12 +549,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         ind++;
                     
                     }
-                    RECT r;
-                    r.left = 0;
-                    r.right = 300;
-                    r.top = 0;
-                    r.bottom = 50;
-                    InvalidateRect(hWnd,&r, TRUE );
+                    SetWindowTextW(GetDlgItem(hWnd,EDIT_CURRENT_PATH),chosenDrive);
                     isAnyDriveChoosen = true;
 
                 }
@@ -662,9 +692,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             750, 82, 20, 20, hWnd, (HMENU)BUTTON_ADD_EXTENSION, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         deleteExtensionButton =  CreateWindow(WC_BUTTON, L"-", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             775, 82, 20, 20, hWnd, (HMENU)BUTTON_DELETE_EXTENSION, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-        clearDriveButton = CreateWindow(L"BUTTON", L"ClearDrive", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-            10, 130, 130, 20, hWnd, (HMENU)BUTTON_CLEAR_DRIVE, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-        CreateWindow(L"BUTTON", L"...", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        CreateWindow(L"BUTTON", L"...", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON ,
             550, 3, 20, 16, hWnd, (HMENU)BUTTON_SET_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
         CreateWindow(L"BUTTON", L"...", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
             905, 3, 20, 16, hWnd, (HMENU)BUTTON_SET_COPY_PATH, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
@@ -761,9 +789,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             wsprintfW(driveName,L"%s(%s)",driveName,driveTemplate);
             SendMessage(flashDrivesList, LB_ADDSTRING, NULL, (LPARAM)driveName);
         }
-        SendMessage(flashDrivesList, LB_ADDSTRING, NULL, (LPARAM)L"FakeDrive1(E:\\)");
+       /* SendMessage(flashDrivesList, LB_ADDSTRING, NULL, (LPARAM)L"FakeDrive1(E:\\)");
         SendMessage(flashDrivesList, LB_ADDSTRING, NULL, (LPARAM)L"FakeDrive2(G:\\)");
-        SendMessage(flashDrivesList, LB_ADDSTRING, NULL, (LPARAM)L"vFakeDrive3(K:\\)");
+        SendMessage(flashDrivesList, LB_ADDSTRING, NULL, (LPARAM)L"vFakeDrive3(K:\\)");*/
     }
 
     void device_added(char letter)

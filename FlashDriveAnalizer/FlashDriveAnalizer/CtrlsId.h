@@ -1,7 +1,6 @@
 #pragma once
 
 // next id = 39
-
 #define  BUTTON_CLEAR_DRIVE 11
 #define  BUTTON_SEARCH_FILES 19
 #define  BUTTON_DELETE_FILES 20

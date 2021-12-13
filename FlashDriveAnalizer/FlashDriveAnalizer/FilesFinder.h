@@ -23,6 +23,7 @@ class filesFinder {
 		void SetNameTemplate(wchar_t* _template);
 		void SetSizeBorder(DWORD _minSize, DWORD _maxSize);
 		void SetTemplateCaseSensitive(bool value);
+		void Clone(filesFinder* clonePath);
 
 	private:
 		void MoveCurrentRootOneVolumeBack();

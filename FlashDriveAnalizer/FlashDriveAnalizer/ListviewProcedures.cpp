@@ -75,7 +75,27 @@ int CALLBACK  LVCompareProc(LPARAM p1, LPARAM p2, LPARAM p)
 	lpStr2 = buf2;
 	if (lpStr1 && lpStr2)
 	{
-		int res = wcscmp(lpStr1, lpStr2);
+		int res = 0;
+		if ( (int)((sortListviewParams*)p)->ind <= 1 ) 
+		{
+			res = wcscmp(lpStr1, lpStr2);
+		}
+		else
+		{
+
+			int size1 = _wtoi(lpStr1), size2 = _wtoi(lpStr2);
+			if (size1 > size2)
+				res = 1;
+			else if (size1 == size2)
+				res = 0;
+			else
+			{
+				res = -1;
+			}
+		
+
+		}
+		
 		if (((sortListviewParams*)p)->order)
 			return res;
 		else

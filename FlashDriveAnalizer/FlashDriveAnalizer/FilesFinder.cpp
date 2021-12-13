@@ -13,6 +13,17 @@ filesFinder::filesFinder(wchar_t* root)
 	currentroot = new wchar_t[1024];
 	wcscpy(currentroot,root);
 }
+void filesFinder::Clone(filesFinder* clonePath)
+{
+	 wcscpy(clonePath->extension, this->extension);
+	 clonePath->currentroot = new wchar_t[1024];
+	 wcscpy(clonePath->currentroot, this->currentroot);
+	 wcscpy(clonePath->nameTemplate, this->nameTemplate);
+	 clonePath->templateCaseSensitive = this->templateCaseSensitive;
+	 clonePath->maxSize = this->maxSize;
+	 clonePath->minSize= this->minSize;
+
+}
 
 filesFinder::~filesFinder() 
 {
@@ -54,14 +65,6 @@ void filesFinder::findFiles(HWND hList, int* count, int MaxNestedFind, bool useS
 	}
 	WIN32_FIND_DATAW data;
 	wsprintfW(newPath, L"%s*", currentroot);
-	/*if (!useExtension) 
-	{
-		
-	}
-	else
-	{
-		wsprintfW(newPath, L"%s*%s", currentroot,this->extension);
-	}*/
 	HANDLE hfind = FindFirstFileW(newPath, &data);
 	if (hfind == INVALID_HANDLE_VALUE) 
 	{
